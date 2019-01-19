@@ -26,18 +26,19 @@ hparams = tf.contrib.training.HParams(
     #--------------     
     # audio processing parameters
     num_mels = 80,
-    fmin = 125,
+    fmin = 95,
     fmax = 7600,
-    fft_size = 1024,
-    hop_size = 256,
-    win_length = 1024,
-    sample_rate = 24000,
+    n_fft = 2048,
+    hop_size = 200,
+    win_size = 800,
+    sample_rate = 16000,
     preemphasis = 0.97,
     min_level_db = -100,
     ref_level_db = 20,
     rescaling = False,
     rescaling_max = 0.999,
     allow_clipping_in_normalization = True,
+    use_lws = False,
     #----------------
     #
     #----------------
@@ -46,8 +47,8 @@ hparams = tf.contrib.training.HParams(
     fc_dims = 512,
     pad = 2,
     # note upsample factors must multiply out to be equal to hop_size, so adjust
-    # if necessary (i.e 4 x 4 x 16 = 256)
-    upsample_factors = (4, 8, 8),
+    # if necessary (i.e 4 x 5 x 10 = 200)
+    upsample_factors = (4, 5, 10),
     compute_dims = 128,
     res_out_dims = 128,
     res_blocks = 10,
@@ -75,7 +76,7 @@ hparams = tf.contrib.training.HParams(
     adam_beta2=0.999,
     adam_eps=1e-8,
     amsgrad=False,
-    weight_decay=1e-4,
+    weight_decay=1e-5,
     fix_learning_rate = None, # modify if one wants to use a fixed learning rate, else set to None to use noam learning rate
     #-----------------
     batch_size_gen = 32,

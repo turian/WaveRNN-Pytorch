@@ -5,6 +5,7 @@ usage: train.py [options] <data-root>
 options:
     --checkpoint-dir=<dir>      Directory where to save model checkpoints [default: checkpoints].
     --checkpoint=<path>         Restore model from checkpoint path if given.
+    --log-event-path=<path>     Path to tensorboard event log
     -h, --help                  Show this help message and exit
 """
 from docopt import docopt
@@ -13,11 +14,13 @@ import os
 from os.path import dirname, join, expanduser
 from tqdm import tqdm
 
+from datetime import datetime
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import librosa
+from tensorboardX import SummaryWriter
 
 from model import build_model
 
@@ -33,6 +36,7 @@ from loss_function import nll_loss
 from dataset import raw_collate, discrete_collate, AudiobookDataset
 from hparams import hparams as hp
 from lrschedule import noam_learning_rate_decay, step_learning_rate_decay
+from utils import num_params_count
 
 global_step = 0
 global_epoch = 0
@@ -105,7 +109,7 @@ def evaluate_model(model, data_loader, checkpoint_dir, limit_eval_to=5):
     for f in test_files:
         if f[-7:] == "mel.npy":
             mel = np.load(os.path.join(test_path,f))
-            wav = model.generate(mel)
+            wav = model.generate(mel, batched=True)
             # save wav
             wav_path = os.path.join(output_dir,"checkpoint_step{:09d}_wav_{}.wav".format(global_step,counter))
             librosa.output.write_wav(wav_path, wav, sr=hp.sample_rate)
@@ -115,7 +119,21 @@ def evaluate_model(model, data_loader, checkpoint_dir, limit_eval_to=5):
             plt.savefig(fig_path)
             # clear fig to drawing to the same plot
             plt.clf()
+
+            if counter == 0:
+                wav = model.generate(mel, batched=False)
+                # save wav
+                wav_path = os.path.join(output_dir,"checkpoint_step{:09d}_wav_unbatched_{}.wav".format(global_step,counter))
+                librosa.output.write_wav(wav_path, wav, sr=hp.sample_rate)
+                # save wav plot
+                fig_path = os.path.join(output_dir,"checkpoint_step{:09d}_wav_unbatched_{}.png".format(global_step,counter))
+                fig = plt.plot(wav.reshape(-1))
+                plt.savefig(fig_path)
+                # clear fig to drawing to the same plot
+                plt.clf()
+
             counter += 1
+
         # stop evaluation early via limit_eval_to
         if counter >= limit_eval_to:
             break
@@ -160,11 +178,17 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             optimizer.zero_grad()
             loss.backward()
             # clip gradient norm
-            nn.utils.clip_grad_norm_(model.parameters(), hp.grad_norm)
+            grad_norm = nn.utils.clip_grad_norm_(model.parameters(), hp.grad_norm)
             optimizer.step()
 
             running_loss += loss.item()
             avg_loss = running_loss / (i+1)
+
+            writer.add_scalar("loss", float(loss.item()), global_step)
+            writer.add_scalar("avg_loss", float(avg_loss), global_step)
+            writer.add_scalar("learning_rate", float(current_lr), global_step)
+            writer.add_scalar("grad_norm", float(grad_norm), global_step)
+
             # saving checkpoint if needed
             if global_step != 0 and global_step % hp.save_every_step == 0:
                 save_checkpoint(device, model, optimizer, global_step, checkpoint_dir, global_epoch)
@@ -190,6 +214,7 @@ if __name__=="__main__":
     checkpoint_dir = args["--checkpoint-dir"]
     checkpoint_path = args["--checkpoint"]
     data_root = args["<data-root>"]
+    log_event_path = args["--log-event-path"]
 
     # make dirs, load dataloader and set up device
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -207,8 +232,25 @@ if __name__=="__main__":
     device = torch.device("cuda" if use_cuda else "cpu")
     print("using device:{}".format(device))
 
+    if log_event_path is None:
+        log_event_path = "log/log_" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    else:
+        log_event_path += "/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    print("Tensorboard event path: {}".format(log_event_path))
+    writer = SummaryWriter(log_dir=log_event_path)
+
     # build model, create optimizer
     model = build_model().to(device)
+    print("Parameter Count:")
+    print("I: %.3f million"%(num_params_count(model.I)))
+    print("Upsample: %.3f million"%(num_params_count(model.upsample)))
+    print("rnn1: %.3f million"%(num_params_count(model.rnn1)))
+    print("rnn2: %.3f million"%(num_params_count(model.rnn2)))
+    print("fc1: %.3f million"%(num_params_count(model.fc1)))
+    print("fc2: %.3f million"%(num_params_count(model.fc2)))
+    print("fc3: %.3f million"%(num_params_count(model.fc3)))
+    print(model)
+
     optimizer = optim.Adam(model.parameters(),
                            lr=hp.initial_learning_rate, betas=(
         hp.adam_beta1, hp.adam_beta2),

@@ -42,9 +42,14 @@ def inv_spectrogram(spectrogram):
     y = processor.istft(D).astype(np.float32)
     return inv_preemphasis(y)
 
+def _stft(y):
+    if hparams.use_lws:
+        return _lws_processor(hparams).stft(y).T
+    else:
+        return librosa.stft(y=y, n_fft=hparams.n_fft, hop_length=hparams.hop_size, win_length=hparams.win_size, pad_mode='constant')
 
 def melspectrogram(y):
-    D = _lws_processor().stft(preemphasis(y)).T
+    D = _stft(preemphasis(y))
     S = _amp_to_db(_linear_to_mel(np.abs(D))) - hparams.ref_level_db
     if not hparams.allow_clipping_in_normalization:
         assert S.max() <= 0 and S.min() - hparams.min_level_db >= 0
@@ -52,7 +57,7 @@ def melspectrogram(y):
 
 
 def _lws_processor():
-    return lws.lws(hparams.win_length, hparams.hop_size, mode="speech")
+    return lws.lws(hparams.win_size, hparams.hop_size, mode="speech")
 
 
 # Conversions:
@@ -71,7 +76,7 @@ def _linear_to_mel(spectrogram):
 def _build_mel_basis():
     if hparams.fmax is not None:
         assert hparams.fmax <= hparams.sample_rate // 2
-    return librosa.filters.mel(hparams.sample_rate, hparams.fft_size,
+    return librosa.filters.mel(hparams.sample_rate, hparams.n_fft,
                                fmin=hparams.fmin, fmax=hparams.fmax,
                                n_mels=hparams.num_mels)
 
