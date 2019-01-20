@@ -334,9 +334,9 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
                 global_test_step = False
             global_step += 1
 
-        pruner.prune(global_step)
-        print("epoch:{}, running loss:{}, average loss:{}, current lr:{}".format(global_epoch, running_loss, avg_loss,
-                                                                                 current_lr))
+        num_pruned=pruner.prune(global_step)
+        print("epoch:{}, running loss:{}, average loss:{}, current lr:{}, num_pruned:{}".format(global_epoch, running_loss, avg_loss,
+                                                                                 current_lr, num_pruned))
         global_epoch += 1
 
 
