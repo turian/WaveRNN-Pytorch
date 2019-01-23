@@ -11,6 +11,7 @@ options:
 import os
 
 import librosa
+import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
