@@ -11,7 +11,7 @@ options:
 import os
 
 import librosa
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
 from docopt import docopt
