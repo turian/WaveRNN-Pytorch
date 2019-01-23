@@ -7,5 +7,6 @@ echo $SD
 
 CUR=$PWD
 echo $CUR
+cp ../runscript $CUR/runscript
 
 docker run --runtime=nvidia -v $CUR:/workspace/ -v $SD/../TrainingData:/workspace/TrainingData/:ro -v $CUR/output:/output/ -e BRANCH=$1 -ti dl_ubuntu /bin/bash -c /workspace/runscript
