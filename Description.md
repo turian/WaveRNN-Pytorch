@@ -5,4 +5,6 @@
 
 3. Resblock depth of 3.
 
+4. Single GRU layer
+
 

@@ -106,7 +106,7 @@ class Model(nn.Module) :
                                         res_blocks, res_out_dims, pad)
         self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
         self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-        self.rnn2 = nn.GRU(rnn_dims + self.aux_dims, rnn_dims, batch_first=True)
+        #self.rnn2 = nn.GRU(rnn_dims + self.aux_dims, rnn_dims, batch_first=True)
         self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
         self.fc2 = nn.Linear(fc_dims + self.aux_dims, fc_dims)
         self.fc3 = nn.Linear(fc_dims, self.n_classes)
@@ -130,11 +130,11 @@ class Model(nn.Module) :
         x, _ = self.rnn1(x, h1)
         
         x = x + res
-        res = x
-        x = torch.cat([x, a2], dim=2)
-        x, _ = self.rnn2(x, h2)
+        #res = x
+        #x = torch.cat([x, a2], dim=2)
+        #x, _ = self.rnn2(x, h2)
         
-        x = x + res
+        #x = x + res
         x = torch.cat([x, a3], dim=2)
         x = F.relu(self.fc1(x))
         
@@ -357,7 +357,7 @@ class Model(nn.Module) :
         output = []
 
         rnn1 = self.get_gru_cell(self.rnn1)
-        rnn2 = self.get_gru_cell(self.rnn2)
+        #rnn2 = self.get_gru_cell(self.rnn2)
 
         with torch.no_grad():
 
@@ -391,10 +391,10 @@ class Model(nn.Module) :
                 h1 = rnn1(x, h1)
 
                 x = x + h1
-                inp = torch.cat([x, a2_t], dim=1)
-                h2 = rnn2(inp, h2)
+                #inp = torch.cat([x, a2_t], dim=1)
+                #h2 = rnn2(inp, h2)
 
-                x = x + h2
+                #x = x + h2
                 x = torch.cat([x, a3_t], dim=1)
                 x = F.relu(self.fc1(x))
 
@@ -425,7 +425,7 @@ class Model(nn.Module) :
         self.eval()
         output = []
         rnn1 = self.get_gru_cell(self.rnn1)
-        rnn2 = self.get_gru_cell(self.rnn2)
+        #rnn2 = self.get_gru_cell(self.rnn2)
         b_size = mels.shape[0]
         assert len(mels.shape) == 3, "mels should have shape [batch_size x 80 x mel_length]"
         
@@ -458,10 +458,10 @@ class Model(nn.Module) :
                 h1 = rnn1(x, h1)
                 
                 x = x + h1
-                inp = torch.cat([x, a2_t], dim=1)
-                h2 = rnn2(inp, h2)
+                #inp = torch.cat([x, a2_t], dim=1)
+                #h2 = rnn2(inp, h2)
                 
-                x = x + h2
+                #x = x + h2
                 x = torch.cat([x, a3_t], dim=1)
                 x = F.relu(self.fc1(x))
                 
