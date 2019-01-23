@@ -56,7 +56,7 @@ hparams = tf.contrib.training.HParams(
     #
     # ----------------
     # training parameters
-    batch_size=32,
+    batch_size=16,
     nepochs=5000,
     save_every_step=5000,
     evaluate_every_step=5000,
