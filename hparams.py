@@ -51,15 +51,15 @@ hparams = tf.contrib.training.HParams(
     upsample_factors=(4, 5, 10),
     compute_dims=128,
     res_out_dims=128,
-    res_blocks=10,
+    res_blocks=3,
     # ----------------
     #
     # ----------------
     # training parameters
-    batch_size=64,
+    batch_size=32,
     nepochs=5000,
-    save_every_step=2000,
-    evaluate_every_step=2000,
+    save_every_step=5000,
+    evaluate_every_step=5000,
     # seq_len_factor can be adjusted to increase training sequence length (will increase GPU usage)
     seq_len_factor=5,
 
@@ -73,8 +73,8 @@ hparams = tf.contrib.training.HParams(
     lr_step_interval=15000,
 
     # sparsification
-    start_prune=60000,
-    prune_steps=200000,  # 20000
+    start_prune=40000,
+    prune_steps=120000,  # 20000
     sparsity_target=0.9375,
     sparse_group=8,
 
