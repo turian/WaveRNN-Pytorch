@@ -285,7 +285,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [model.rnn1, model.rnn2]
+    layers = [model.rnn1] #, model.rnn2]
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
@@ -343,7 +343,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
 
 
 def test_prune(model):
-    layers = [model.rnn1, model.rnn2]
+    layers = [model.rnn1] #, model.rnn2]
     start_prune = 0
     prune_steps = 100  # 20000
     sparsity_target = 0.9375
@@ -394,7 +394,7 @@ if __name__ == "__main__":
     print("I: %.3f million" % (num_params_count(model.I)))
     print("Upsample: %.3f million" % (num_params_count(model.upsample)))
     print("rnn1: %.3f million" % (num_params_count(model.rnn1)))
-    print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
+    #print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
     print("fc1: %.3f million" % (num_params_count(model.fc1)))
     print("fc2: %.3f million" % (num_params_count(model.fc2)))
     print("fc3: %.3f million" % (num_params_count(model.fc3)))
