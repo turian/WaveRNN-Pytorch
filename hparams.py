@@ -51,7 +51,7 @@ hparams = tf.contrib.training.HParams(
     upsample_factors=(4, 5, 10),
     compute_dims=128,
     res_out_dims=128,
-    res_blocks=3,
+    res_blocks=10,
     # ----------------
     #
     # ----------------
