@@ -89,7 +89,8 @@ class PruneMask():
 
     def apply_mask(self, layer):
         params = self.get_params(layer)
-        for M, W in zip(self.mask, params): W *= M
+        for M, W in zip(self.mask, params):
+            W *= M
 
     def mask_from_matrix(self, W, z):
         # Split into gate matrices (or not)
@@ -309,6 +310,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             # clip gradient norm
             grad_norm = nn.utils.clip_grad_norm_(model.parameters(), hp.grad_norm)
             optimizer.step()
+            num_pruned=pruner.prune(global_step)
 
             running_loss += loss.item()
             avg_loss = running_loss / (i + 1)
@@ -334,7 +336,6 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
                 global_test_step = False
             global_step += 1
 
-        num_pruned=pruner.prune(global_step)
         print("epoch:{}, running loss:{}, average loss:{}, current lr:{}, num_pruned:{}".format(global_epoch, running_loss, avg_loss,
                                                                                  current_lr, num_pruned))
         global_epoch += 1
@@ -419,7 +420,6 @@ if __name__ == "__main__":
         print("loading model from checkpoint:{}".format(checkpoint_path))
         # set global_test_step to True so we don't evaluate right when we load in the model
         global_test_step = True
-        hp.start_prune = 0 #start pruning right away if loaded from checkpoint
 
     # main train loop
     try:

@@ -73,8 +73,8 @@ hparams = tf.contrib.training.HParams(
     lr_step_interval=15000,
 
     # sparsification
-    start_prune=20000,
-    prune_steps=20000,  # 20000
+    start_prune=60000,
+    prune_steps=200000,  # 20000
     sparsity_target=0.9375,
     sparse_group=8,
 
