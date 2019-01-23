@@ -1,9 +1,11 @@
 #!/bin/bash
 
+echo $1
+
 SD=$PWD/../../
 echo $SD
 
 CUR=$PWD
 echo $CUR
 
-docker run --runtime=nvidia -v $CUR:/workspace/ -v $SD/../TrainingData:/workspace/TrainingData/:ro -v $CUR/output:/output/  -ti dl_ubuntu /bin/bash -c /workspace/runscript $1
+docker run --runtime=nvidia -v $CUR:/workspace/ -v $SD/../TrainingData:/workspace/TrainingData/:ro -v $CUR/output:/output/ -e BRANCH=$1 -ti dl_ubuntu /bin/bash -c /workspace/runscript
