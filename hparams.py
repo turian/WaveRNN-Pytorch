@@ -26,7 +26,7 @@ hparams = tf.contrib.training.HParams(
     # --------------
     # audio processing parameters
     num_mels=80,
-    fmin=95,
+    fmin=55,
     fmax=7600,
     n_fft=2048,
     hop_size=200,
@@ -35,7 +35,7 @@ hparams = tf.contrib.training.HParams(
     preemphasis=0.97,
     min_level_db=-100,
     ref_level_db=20,
-    rescaling=False,
+    rescaling=True,
     rescaling_max=0.999,
     allow_clipping_in_normalization=True,
     use_lws=False,
@@ -51,17 +51,17 @@ hparams = tf.contrib.training.HParams(
     upsample_factors=(4, 5, 10),
     compute_dims=128,
     res_out_dims=128,
-    res_blocks=10,
+    res_blocks=3,
     # ----------------
     #
     # ----------------
     # training parameters
-    batch_size=32,
+    batch_size=64,
     nepochs=5000,
     save_every_step=2000,
     evaluate_every_step=2000,
     # seq_len_factor can be adjusted to increase training sequence length (will increase GPU usage)
-    seq_len_factor=5,
+    seq_len_factor=7,
 
     grad_norm=10,
     # learning rate parameters
