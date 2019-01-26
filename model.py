@@ -101,7 +101,7 @@ class Model(nn.Module) :
         else:
             raise ValueError("input_type: {hp.input_type} not supported")
         self.rnn_dims = rnn_dims
-        self.aux_dims = res_out_dims // 4
+        self.aux_dims = res_out_dims // 3
         self.upsample = UpsampleNetwork(feat_dims, upsample_factors, compute_dims, 
                                         res_blocks, res_out_dims, pad)
         self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
@@ -122,7 +122,6 @@ class Model(nn.Module) :
         a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
         a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
         a3 = aux[:, :, aux_idx[2]:aux_idx[3]]
-        a4 = aux[:, :, aux_idx[3]:aux_idx[4]]
         
         x = torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
         x = self.I(x)
@@ -135,10 +134,10 @@ class Model(nn.Module) :
         #x, _ = self.rnn2(x, h2)
         
         #x = x + res
-        x = torch.cat([x, a3], dim=2)
+        x = torch.cat([x, a2], dim=2)
         x = F.relu(self.fc1(x))
         
-        x = torch.cat([x, a4], dim=2)
+        x = torch.cat([x, a3], dim=2)
         x = F.relu(self.fc2(x))
 
         x = self.fc3(x)
@@ -377,13 +376,13 @@ class Model(nn.Module) :
             x = torch.zeros(b_size, 1).cuda()
 
             d = self.aux_dims
-            aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(4)]
+            aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(3)]
 
             for i in range(seq_len):
 
                 m_t = mels[:, i, :]
 
-                a1_t, a2_t, a3_t, a4_t = \
+                a1_t, a2_t, a3_t = \
                     (a[:, i, :] for a in aux_split)
 
                 x = torch.cat([x, m_t, a1_t], dim=1)
@@ -395,10 +394,10 @@ class Model(nn.Module) :
                 #h2 = rnn2(inp, h2)
 
                 #x = x + h2
-                x = torch.cat([x, a3_t], dim=1)
+                x = torch.cat([x, a2_t], dim=1)
                 x = F.relu(self.fc1(x))
 
-                x = torch.cat([x, a4_t], dim=1)
+                x = torch.cat([x, a3_t], dim=1)
                 x = F.relu(self.fc2(x))
 
                 logits = self.fc3(x)
@@ -441,7 +440,7 @@ class Model(nn.Module) :
             a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
             a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
             a3 = aux[:, :, aux_idx[2]:aux_idx[3]]
-            a4 = aux[:, :, aux_idx[3]:aux_idx[4]]
+
             
             seq_len = mels.size(1)
             
@@ -451,7 +450,7 @@ class Model(nn.Module) :
                 a1_t = a1[:, i, :]
                 a2_t = a2[:, i, :]
                 a3_t = a3[:, i, :]
-                a4_t = a4[:, i, :]
+
                 
                 x = torch.cat([x, m_t, a1_t], dim=1)
                 x = self.I(x)
@@ -462,10 +461,10 @@ class Model(nn.Module) :
                 #h2 = rnn2(inp, h2)
                 
                 #x = x + h2
-                x = torch.cat([x, a3_t], dim=1)
+                x = torch.cat([x, a2_t], dim=1)
                 x = F.relu(self.fc1(x))
                 
-                x = torch.cat([x, a4_t], dim=1)
+                x = torch.cat([x, a3_t], dim=1)
                 x = F.relu(self.fc2(x))
                 x = self.fc3(x)
                 if hp.input_type == 'raw':

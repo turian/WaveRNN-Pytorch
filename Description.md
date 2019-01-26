@@ -11,5 +11,11 @@
 
 6. Trained on northandsouth.
 
-7. Rescaling True
+7. Rescaling True.
+
+8. Fixed aux net count.
+
+8. FC layers 3->1
+
+
 
