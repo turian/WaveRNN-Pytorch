@@ -397,7 +397,7 @@ if __name__ == "__main__":
     #print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
     print("fc1: %.3f million" % (num_params_count(model.fc1)))
     print("fc2: %.3f million" % (num_params_count(model.fc2)))
-    print("fc3: %.3f million" % (num_params_count(model.fc3)))
+    #print("fc3: %.3f million" % (num_params_count(model.fc3)))
     print(model)
 
     optimizer = optim.Adam(model.parameters(),
