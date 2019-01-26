@@ -35,7 +35,7 @@ hparams = tf.contrib.training.HParams(
     preemphasis=0.97,
     min_level_db=-100,
     ref_level_db=20,
-    rescaling=True,
+    rescaling=False,
     rescaling_max=0.999,
     allow_clipping_in_normalization=True,
     use_lws=False,
@@ -51,12 +51,12 @@ hparams = tf.contrib.training.HParams(
     upsample_factors=(4, 5, 10),
     compute_dims=128,
     res_out_dims=128,
-    res_blocks=3,
+    res_blocks=1,
     # ----------------
     #
     # ----------------
     # training parameters
-    batch_size=64,
+    batch_size=32,
     nepochs=5000,
     save_every_step=2000,
     evaluate_every_step=2000,

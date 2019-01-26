@@ -5,7 +5,7 @@
 
 3. Single GRU layer.
 
-4. Resnet depth of 3.
+4. Resnet depth of 1.
 
 5. Training length 5->7.
 
