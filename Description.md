@@ -15,7 +15,7 @@
 
 8. Fixed aux net count.
 
-8. FC layers 3->1
+8. FC layers 3->2
 
 
 
