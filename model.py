@@ -101,15 +101,14 @@ class Model(nn.Module) :
         else:
             raise ValueError("input_type: {hp.input_type} not supported")
         self.rnn_dims = rnn_dims
-        self.aux_dims = res_out_dims // 3
+        self.aux_dims = res_out_dims // 2
         self.upsample = UpsampleNetwork(feat_dims, upsample_factors, compute_dims, 
                                         res_blocks, res_out_dims, pad)
         self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
         self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-        #self.rnn2 = nn.GRU(rnn_dims + self.aux_dims, rnn_dims, batch_first=True)
+
         self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
-        self.fc2 = nn.Linear(fc_dims + self.aux_dims, fc_dims)
-        self.fc3 = nn.Linear(fc_dims, self.n_classes)
+        self.fc2 = nn.Linear(fc_dims, self.n_classes)
         num_params(self)
     
     def forward(self, x, mels) :
@@ -118,29 +117,20 @@ class Model(nn.Module) :
         h2 = torch.zeros(1, bsize, self.rnn_dims).cuda()
         mels, aux = self.upsample(mels)
         
-        aux_idx = [self.aux_dims * i for i in range(5)]
+        aux_idx = [self.aux_dims * i for i in range(3)]
         a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
         a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
-        a3 = aux[:, :, aux_idx[2]:aux_idx[3]]
-        
+
         x = torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
         x = self.I(x)
         res = x
         x, _ = self.rnn1(x, h1)
-        
         x = x + res
-        #res = x
-        #x = torch.cat([x, a2], dim=2)
-        #x, _ = self.rnn2(x, h2)
-        
-        #x = x + res
+
         x = torch.cat([x, a2], dim=2)
         x = F.relu(self.fc1(x))
         
-        x = torch.cat([x, a3], dim=2)
-        x = F.relu(self.fc2(x))
-
-        x = self.fc3(x)
+        x = self.fc2(x)
 
         if hp.input_type == 'raw':
             return x
@@ -356,16 +346,13 @@ class Model(nn.Module) :
         output = []
 
         rnn1 = self.get_gru_cell(self.rnn1)
-        #rnn2 = self.get_gru_cell(self.rnn2)
 
         with torch.no_grad():
-
             mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
             mels = self.pad_tensor(mels.transpose(1, 2), pad=hp.pad, side='both')
             mels, aux = self.upsample(mels.transpose(1, 2))
 
             if batched:
-                #target = mels.shape[1] // hp.batch_size_gen
                 mels = self.fold_with_overlap(mels, target, overlap)
                 aux = self.fold_with_overlap(aux, target, overlap)
 
@@ -382,7 +369,7 @@ class Model(nn.Module) :
 
                 m_t = mels[:, i, :]
 
-                a1_t, a2_t, a3_t = \
+                a1_t, a2_t = \
                     (a[:, i, :] for a in aux_split)
 
                 x = torch.cat([x, m_t, a1_t], dim=1)
@@ -390,17 +377,10 @@ class Model(nn.Module) :
                 h1 = rnn1(x, h1)
 
                 x = x + h1
-                #inp = torch.cat([x, a2_t], dim=1)
-                #h2 = rnn2(inp, h2)
-
-                #x = x + h2
                 x = torch.cat([x, a2_t], dim=1)
                 x = F.relu(self.fc1(x))
 
-                x = torch.cat([x, a3_t], dim=1)
-                x = F.relu(self.fc2(x))
-
-                logits = self.fc3(x)
+                logits = self.fc2(x)
                 posterior = F.softmax(logits, dim=1)
                 distrib = torch.distributions.Categorical(posterior)
                 sample = 2 * distrib.sample().float() / (self.n_classes - 1.) - 1.
@@ -436,12 +416,10 @@ class Model(nn.Module) :
             mels = torch.FloatTensor(mels).cuda()
             mels, aux = self.upsample(mels)
             
-            aux_idx = [self.aux_dims * i for i in range(5)]
+            aux_idx = [self.aux_dims * i for i in range(3)]
             a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
             a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
-            a3 = aux[:, :, aux_idx[2]:aux_idx[3]]
 
-            
             seq_len = mels.size(1)
             
             for i in tqdm(range(seq_len)) :
@@ -449,7 +427,6 @@ class Model(nn.Module) :
                 m_t = mels[:, i, :]
                 a1_t = a1[:, i, :]
                 a2_t = a2[:, i, :]
-                a3_t = a3[:, i, :]
 
                 
                 x = torch.cat([x, m_t, a1_t], dim=1)
@@ -457,16 +434,11 @@ class Model(nn.Module) :
                 h1 = rnn1(x, h1)
                 
                 x = x + h1
-                #inp = torch.cat([x, a2_t], dim=1)
-                #h2 = rnn2(inp, h2)
-                
-                #x = x + h2
                 x = torch.cat([x, a2_t], dim=1)
+
                 x = F.relu(self.fc1(x))
-                
-                x = torch.cat([x, a3_t], dim=1)
-                x = F.relu(self.fc2(x))
-                x = self.fc3(x)
+                x = self.fc2(x)
+
                 if hp.input_type == 'raw':
                     sample = sample_from_beta_dist(x.unsqueeze(0))
                 elif hp.input_type == 'mixture':
