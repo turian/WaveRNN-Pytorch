@@ -363,7 +363,7 @@ class Model(nn.Module) :
             x = torch.zeros(b_size, 1).cuda()
 
             d = self.aux_dims
-            aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(3)]
+            aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(2)]
 
             for i in range(seq_len):
 
