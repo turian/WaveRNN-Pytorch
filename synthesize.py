@@ -49,7 +49,7 @@ if __name__ == "__main__":
     print('Loading: %s'%latest_checkpoint)
     # build model, create optimizer
     model = build_model().to(device)
-    checkpoint = torch.load(latest_checkpoint)
+    checkpoint = torch.load(latest_checkpoint, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
 
     print("I: %.3f million"%(num_params_count(model.I)))
@@ -59,6 +59,14 @@ if __name__ == "__main__":
     print("fc1: %.3f million"%(num_params_count(model.fc1)))
     print("fc2: %.3f million"%(num_params_count(model.fc2)))
     #print("fc3: %.3f million"%(num_params_count(model.fc3)))
+
+
+    #onnx export
+    model.train(False)
+    wav = np.load('/home/eugening/Neural/MachineLearning/Speech/WaveRNN-Pytorch/checkpoint/test_0_wav.npy')
+
+    #doesn't work torch.onnx.export(model, (torch.tensor(wav),torch.tensor(mel)), checkpoint_dir+'/wavernn.onnx', verbose=True, input_names=['mel_input'], output_names=['wav_output'])
+
 
     #mel = np.pad(mel,(24000,0),'constant')
     # n_mels = mel.shape[1]
