@@ -1,7 +1,7 @@
 
 1. Baseline vocoder
 
-2. Pruning gru1. Target density ~6%
+2. Pruning gru1. Target density 10%
 
 3. Single GRU layer.
 
@@ -15,7 +15,8 @@
 
 8. Fixed aux net count.
 
-8. FC layers 3->2
+9. FC layers 3->2
 
+10. Prune FC layers.
 
 
