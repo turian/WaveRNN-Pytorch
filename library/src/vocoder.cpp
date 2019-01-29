@@ -2,6 +2,7 @@
 #include <string>
 #include "cxxopts.hpp"
 
+#include "vocoder.h"
 #include "wavernn.h"
 
 using namespace std;
