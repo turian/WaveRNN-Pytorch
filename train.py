@@ -101,7 +101,7 @@ class PruneMask():
         # Loop through splits
         for W in W_split:
             # Sort the magnitudes
-            N = W.shape[0]
+            N = W.shape[1]
 
             W_abs = torch.abs(W)
             L = W_abs.reshape(-1, N // hp.sparse_group, hp.sparse_group)
