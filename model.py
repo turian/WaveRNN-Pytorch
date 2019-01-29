@@ -104,7 +104,7 @@ class Model(nn.Module) :
         self.aux_dims = res_out_dims // 2
         self.upsample = UpsampleNetwork(feat_dims, upsample_factors, compute_dims, 
                                         res_blocks, res_out_dims, pad)
-        self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
+        self.I = nn.Linear(feat_dims + self.aux_dims - 1 + 1, rnn_dims)  #First dimension has to be divizible by 8, so we take away one aux channel
         self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
 
         self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
@@ -121,7 +121,7 @@ class Model(nn.Module) :
         a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
         a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
 
-        x = torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
+        x = torch.cat([x.unsqueeze(-1), mels, a1[:,:,:-1]], dim=2)
         x = self.I(x)
         res = x
         x, _ = self.rnn1(x, h1)
@@ -372,7 +372,7 @@ class Model(nn.Module) :
                 a1_t, a2_t = \
                     (a[:, i, :] for a in aux_split)
 
-                x = torch.cat([x, m_t, a1_t], dim=1)
+                x = torch.cat([x, m_t, a1_t[:,:-1]], dim=1)
                 x = self.I(x)
                 h1 = rnn1(x, h1)
 
@@ -429,7 +429,7 @@ class Model(nn.Module) :
                 a2_t = a2[:, i, :]
 
                 
-                x = torch.cat([x, m_t, a1_t], dim=1)
+                x = torch.cat([x, m_t, a1_t[:,:-1]], dim=1)
                 x = self.I(x)
                 h1 = rnn1(x, h1)
                 
