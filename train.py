@@ -102,7 +102,7 @@ class PruneMask():
         for W in W_split:
             # Sort the magnitudes
             N = W.shape[0]
-            W = torch.transpose(W, 1, 0)
+
             W_abs = torch.abs(W)
             L = W_abs.reshape(-1, N // hp.sparse_group, hp.sparse_group)
             S = L.sum(dim=-1)
@@ -113,7 +113,7 @@ class PruneMask():
             threshold = sorted_abs[k]
             mask = (S >= threshold).float()
             mask = mask.repeat(1, hp.sparse_group)
-            mask = torch.transpose(mask, 1, 0)
+
             # Create the mask
             M += [mask]
 
