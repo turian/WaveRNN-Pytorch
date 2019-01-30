@@ -13,9 +13,9 @@ typedef VectorXf Vectorf;
 
 
 class TorchLayer{
-    struct Header{
-        int size; //size of data blob, not including this header
-        enum LayerType : char { Conv1d=1, BatchNorm1d=2, Linear=3, GRU=4 };
+    struct alignas(1) Header{
+        //int size; //size of data blob, not including this header
+        enum LayerType : char { Conv1d=1, Conv2d=2, BatchNorm1d=3, Linear=4, GRU=5 };
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         char name[64]; //layer name for debugging
     };
@@ -28,7 +28,7 @@ public:
 
 
 class Conv1d : TorchLayer{
-    struct Header{
+    struct alignas(1) Header{
         bool useBias;
         int inChannels;
         int outChannels;
@@ -50,7 +50,7 @@ public:
 
 
 class BatchNorm1d : TorchLayer{
-    struct Header{
+    struct alignas(1) Header{
         int inChannels;
     };
 
@@ -71,9 +71,9 @@ public:
 
 
 class Linear : TorchLayer{
-    struct Header{
-        int inChannels;
-        int outChannels;
+    struct alignas(1) Header{
+        int nRows;
+        int nCols;
     };
 
     Matrixf weight;
@@ -90,7 +90,7 @@ public:
 
 
 class GRU : TorchLayer{
-    struct Header{
+    struct alignas(1) Header{
         int inChannels;
         int outChannels;
         int kernelSize;
