@@ -136,27 +136,29 @@ class Pruner(object):
         self.total_params = 0
         self.masks = []
         self.layers = layers
-        for layer in layers:
+        for (layer,z) in layers:
             self.masks += [PruneMask(layer, prune_rnn_input)]
         self.count_total_params()
 
-    def update_sparsity(self, t):
-        z = self.Z * (1 - (1 - (t - self.t_0) / self.S) ** 3)
-        self.z = clamp(z, 0, self.Z)
-        return
+    def update_sparsity(self, t, Z):
+        z = Z * (1 - (1 - (t - self.t_0) / self.S) ** 3)
+        z = clamp(z, 0, Z)
+        return z
 
     def prune(self, step):
-        self.update_sparsity(step)
-        for (l, m) in zip(self.layers, self.masks):
-            m.update_mask(l, self.z)
+
+        for ((l,z), m) in zip(self.layers, self.masks):
+            z_curr = self.update_sparsity(step, z)
+            m.update_mask(l, z_curr)
             m.apply_mask(l)
         return self.count_num_pruned()
 
     def restart(self, layers, step):
         # In case training is stopped
         self.update_sparsity(step)
-        for (l, m) in zip(layers, self.masks):
-            m.update_mask(l, self.z)
+        for ((l, z), m) in zip(layers, self.masks):
+            z_curr = self.update_sparsity(step, z)
+            m.update_mask(l, z_curr)
 
     def count_num_pruned(self):
         self.num_pruned = 0
@@ -285,7 +287,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [model.I, model.rnn1, model.fc1, model.fc2]
+    layers = [(model.I,.80), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target)]
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
