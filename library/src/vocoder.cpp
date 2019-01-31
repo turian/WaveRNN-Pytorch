@@ -8,7 +8,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
+#include <stdio.h>
 #include <string>
 #include "cxxopts.hpp"
 
@@ -22,15 +22,21 @@ int main(int argc, char* argv[])
 
     cxxopts::Options options("vocoder", "WaveRNN based vocoder");
     options.add_options()
-            ("w,weights", "File with network weights", cxxopts::value<string>())
-            ("m,mel", "File with mel inputs", cxxopts::value<string>())
+            ("w,weights", "File with network weights", cxxopts::value<string>()->default_value(""))
+            ("m,mel", "File with mel inputs", cxxopts::value<string>()->default_value(""))
             ;
     auto result = options.parse(argc, argv);
 
     string weights_file = result["weights"].as<string>();
     string mel_file = result["mel"].as<string>();
 
+    FILE *fd = fopen(weights_file.c_str(), "rb");
+    assert(fd);
 
+    TorchLayer *torchLayer;
 
+    TorchLayer* layer1 = torchLayer->loadNext(fd);
+
+    fclose(fd);
     return 0;
 }
