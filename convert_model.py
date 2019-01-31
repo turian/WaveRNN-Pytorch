@@ -16,8 +16,30 @@ import scipy as sp
 
 elSize = 4 #change to 2 for fp16
 
+def compress(W):
+    N = W.shape[1]
+    W_nz = W
+    W_nz[W_nz!=0]=1
+    L = W_nz.reshape([-1, N // hp.sparse_group, hp.sparse_group])
+    S = L.max(axis=-1)
+    #convert to compressed index
+    #compressed representation has position in each row. "255" denotes row end.
+    (row,col)=np.nonzero(S)
+    idx=[]
+    for i in range(max(row)+1):
+        idx += list(col[row==i])
+        idx += [255]
+
+    print()
+
+
+
+
 def linear_saver(f, layer):
     weight = layer.weight.cpu().detach().numpy()
+
+    compress(weight)
+
     bias = layer.bias.cpu().detach().numpy()
     nrows, ncols = weight.shape
     v = struct.pack('@bii', elSize, nrows, ncols)

@@ -8,7 +8,8 @@
 using namespace Eigen;
 
 typedef Matrix<float, Dynamic, Dynamic, RowMajor> Matrixf;
-typedef Tensor<float, 3, RowMajor> Tensorf;
+typedef Tensor<float, 3, RowMajor> Tensor3df;
+typedef Tensor<float, 4, RowMajor> Tensor4df;
 typedef VectorXf Vectorf;
 
 
@@ -35,7 +36,7 @@ class Conv1dLayer : TorchLayer{
         int kernelSize;
     };
 
-    Tensorf weight;
+    Tensor3df weight;
     Vectorf bias;
 
 
@@ -54,10 +55,11 @@ class Conv2dLayer : TorchLayer{
         bool useBias;
         int inChannels;
         int outChannels;
-        int kernelSize;
+        int kernelSize1;
+        int kernelSize2;
     };
 
-    Tensorf weight;
+    Tensor4df weight;
     Vectorf bias;
 
 
