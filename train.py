@@ -95,7 +95,10 @@ class PruneMask():
 
     def mask_from_matrix(self, W, z):
         # Split into gate matrices (or not)
-        W_split = torch.split(W, self.split_size)
+        if self.split_size>1:
+            W_split = torch.split(W, self.split_size)
+        else:
+            W_split = W
 
         M = []
         # Loop through splits
@@ -104,15 +107,16 @@ class PruneMask():
             N = W.shape[1]
 
             W_abs = torch.abs(W)
-            L = W_abs.reshape(-1, N // hp.sparse_group, hp.sparse_group)
-            S = L.sum(dim=-1)
+            L = W_abs.reshape(W.shape[0], N // hp.sparse_group, hp.sparse_group)
+            S = L.sum(dim=2)
             sorted_abs, _ = torch.sort(S.view(-1))
 
             # Pick k (num weights to zero)
-            k = int(W.size(0) * W.size(1) // hp.sparse_group * z)
+            k = int(W.shape[0] * W.shape[1] // hp.sparse_group * z)
             threshold = sorted_abs[k]
             mask = (S >= threshold).float()
-            mask = mask.repeat(1, hp.sparse_group)
+            mask = mask.unsqueeze(2).expand(-1,-1,hp.sparse_group)
+            mask = mask.reshape(W.shape[0], W.shape[1])
 
             # Create the mask
             M += [mask]
@@ -287,7 +291,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [(model.I,.80), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target)]
+    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target)]
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
