@@ -11,7 +11,27 @@ typedef Matrix<float, Dynamic, Dynamic, RowMajor> Matrixf;
 typedef Tensor<float, 3, RowMajor> Tensor3df;
 typedef Tensor<float, 4, RowMajor> Tensor4df;
 typedef VectorXf Vectorf;
+typedef Matrix<int8_t, Dynamic, 1> Vectori8;
 
+
+class CompMatrix{
+    Vectorf weight;
+    Vectori8 index;
+public:
+
+    void read(FILE* fd, int elSize){
+        int nWeights, nIndex;
+
+        fread(&nWeights, sizeof(int), 1, fd);
+
+        weight.resize(nWeights);
+        fread(weight.data(), elSize, nWeights, fd);
+
+        fread(&nIndex, sizeof(int), 1, fd);
+        index.resize(nIndex);
+        fread(index.data(), sizeof(int8_t), nIndex, fd);
+    }
+};
 
 class TorchLayer{
     struct alignas(1) Header{
@@ -100,8 +120,10 @@ class LinearLayer : public TorchLayer{
         int nCols;
     };
 
-    Matrixf weight;
+    CompMatrix mat;
     Vectorf bias;
+    int nRows;
+    int nCols;
 
 public:
     LinearLayer() = delete;
@@ -118,10 +140,12 @@ class GRULayer : public TorchLayer{
         int nCols;
     };
 
-    Matrixf W_ir,W_iz,W_in;
-    Matrixf W_hr,W_hz,W_hn;
+    CompMatrix W_ir,W_iz,W_in;
+    CompMatrix W_hr,W_hz,W_hn;
     Vectorf b_ir,b_iz,b_in;
     Vectorf b_hr,b_hz,b_hn;
+    int nRows;
+    int nCols;
 
 
 public:

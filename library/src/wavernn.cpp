@@ -44,16 +44,17 @@ TorchLayer *TorchLayer::loadNext(FILE *fd)
     }
 }
 
+//void readCompressed(FILE* fd,)
+
 LinearLayer* LinearLayer::loadNext(FILE *fd)
 {
     LinearLayer::Header header;
     fread( &header, sizeof(LinearLayer::Header), 1, fd);
     assert(header.elSize==4 or header.elSize==2);
 
-    weight.resize(header.nRows, header.nCols);
-    bias.resize(header.nRows);
+    mat.read(fd, header.elSize); //read compressed array
 
-    fread(weight.data(), header.elSize, header.nRows*header.nCols, fd);
+    bias.resize(header.nRows);
     fread(bias.data(), header.elSize, header.nRows, fd);
 }
 
@@ -64,13 +65,8 @@ GRULayer* GRULayer::loadNext(FILE *fd)
     fread( &header, sizeof(GRULayer::Header), 1, fd);
     assert(header.elSize==4 or header.elSize==2);
 
-    W_ir.resize(header.nRows, header.nCols);
-    W_iz.resize(header.nRows, header.nCols);
-    W_in.resize(header.nRows, header.nCols);
-
-    W_hr.resize(header.nRows, header.nRows);
-    W_hz.resize(header.nRows, header.nRows);
-    W_hn.resize(header.nRows, header.nRows);;
+    nRows = header.nRows;
+    nCols = header.nCols;
 
     b_ir.resize(header.nRows);
     b_iz.resize(header.nRows);
@@ -81,13 +77,13 @@ GRULayer* GRULayer::loadNext(FILE *fd)
     b_hn.resize(header.nRows);
 
 
-    fread(W_ir.data(), header.elSize, header.nRows*header.nCols, fd);
-    fread(W_iz.data(), header.elSize, header.nRows*header.nCols, fd);
-    fread(W_in.data(), header.elSize, header.nRows*header.nCols, fd);
+    W_ir.read( fd, header.elSize);
+    W_iz.read( fd, header.elSize);
+    W_in.read( fd, header.elSize);
 
-    fread(W_hr.data(), header.elSize, header.nRows*header.nRows, fd);
-    fread(W_hz.data(), header.elSize, header.nRows*header.nRows, fd);
-    fread(W_hn.data(), header.elSize, header.nRows*header.nRows, fd);
+    W_hr.read( fd, header.elSize);
+    W_hz.read( fd, header.elSize);
+    W_hn.read( fd, header.elSize);
 
     fread(b_ir.data(), header.elSize, header.nRows, fd);
     fread(b_iz.data(), header.elSize, header.nRows, fd);

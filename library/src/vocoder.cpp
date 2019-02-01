@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
     TorchLayer *torchLayer;
 
     TorchLayer* layer1 = torchLayer->loadNext(fd);
+    TorchLayer* layer2 = torchLayer->loadNext(fd);
 
     fclose(fd);
     return 0;

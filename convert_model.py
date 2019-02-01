@@ -16,9 +16,11 @@ import scipy as sp
 
 elSize = 4 #change to 2 for fp16
 
+
+
 def compress(W):
     N = W.shape[1]
-    W_nz = W
+    W_nz = W.copy()
     W_nz[W_nz!=0]=1
     L = W_nz.reshape([-1, N // hp.sparse_group, hp.sparse_group])
     S = L.max(axis=-1)
@@ -29,24 +31,28 @@ def compress(W):
     for i in range(max(row)+1):
         idx += list(col[row==i])
         idx += [255]
+    mask = np.repeat(S, hp.sparse_group, axis=1)
+    idx = np.asarray(idx, dtype='uint8')
+    return (W[mask!=0], idx)
 
-    print()
-
-
+def writeCompressed(f, W):
+    weights, idx = compress(W)
+    f.write(struct.pack('@i',weights.size))
+    f.write(weights.tobytes(order='C'))
+    f.write(struct.pack('@i',idx.size))
+    f.write(idx.tobytes(order='C'))
+    return
 
 
 def linear_saver(f, layer):
     weight = layer.weight.cpu().detach().numpy()
 
-    compress(weight)
-
     bias = layer.bias.cpu().detach().numpy()
     nrows, ncols = weight.shape
     v = struct.pack('@bii', elSize, nrows, ncols)
     f.write(v)
-    f.write(weight.tobytes(order='C'))
+    writeCompressed(f, weight)
     f.write(bias.tobytes(order='C'))
-
 
 def conv1d_saver(f, layer):
     pass
@@ -72,19 +78,19 @@ def gru_saver(f, layer):
     hidden_size, input_size = W_ir.shape
     v = struct.pack('@bii', elSize, hidden_size, input_size)
     f.write(v)
-    f.write(W_ir)
-    f.write(W_iz)
-    f.write(W_in)
-    f.write(W_hr)
-    f.write(W_hz)
-    f.write(W_hn)
-    f.write(b_ir)
-    f.write(b_iz)
-    f.write(b_in)
-    f.write(b_hr)
-    f.write(b_hz)
-    f.write(b_hn)
-    pass
+    writeCompressed(f, W_ir)
+    writeCompressed(f, W_iz)
+    writeCompressed(f, W_in)
+    writeCompressed(f, W_hr)
+    writeCompressed(f, W_hz)
+    writeCompressed(f, W_hn)
+    f.write(b_ir.tobytes(order='C'))
+    f.write(b_iz.tobytes(order='C'))
+    f.write(b_in.tobytes(order='C'))
+    f.write(b_hr.tobytes(order='C'))
+    f.write(b_hz.tobytes(order='C'))
+    f.write(b_hn.tobytes(order='C'))
+    return
 
 savers = { 'Conv1d':conv1d_saver, 'Conv2d':conv2d_saver, 'BatchNorm1d':batchnorm1d_saver, 'Linear':linear_saver, 'GRU':gru_saver }
 layer_enum = { 'Conv1d':1, 'Conv2d':2, 'BatchNorm1d':3, 'Linear':4, 'GRU':5 }
