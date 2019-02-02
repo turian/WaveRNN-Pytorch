@@ -28,7 +28,7 @@ def compress(W):
     #compressed representation has position in each row. "255" denotes row end.
     (row,col)=np.nonzero(S)
     idx=[]
-    for i in range(max(row)+1):
+    for i in range(S.shape[0]+1):
         idx += list(col[row==i])
         idx += [255]
     mask = np.repeat(S, hp.sparse_group, axis=1)
@@ -116,6 +116,10 @@ if __name__ == "__main__":
     model = build_model().to(device)
     checkpoint = torch.load(checkpoint_file_name, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
+
+    x=1.+1./np.arange(1,113)
+    W=model.I.weight.cpu().detach().numpy()
+    print(np.matmul(W,x))
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)

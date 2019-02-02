@@ -54,7 +54,7 @@ LinearLayer* LinearLayer::loadNext(FILE *fd)
     fread( &header, sizeof(LinearLayer::Header), 1, fd);
     assert(header.elSize==4 or header.elSize==2);
 
-    mat.read(fd, header.elSize); //read compressed array
+    mat.read(fd, header.elSize, header.nRows, header.nCols); //read compressed array
 
     bias.resize(header.nRows);
     fread(bias.data(), header.elSize, header.nRows, fd);
@@ -113,12 +113,13 @@ Vectorf CompMatrix::operator*(const Vectorf &x)
     float sum = 0;
 
     while( row < nRows ){
-        if( index[indexPos] != ROW_END_MARKER ){
+        int idxPos = index[indexPos++];
+        if( idxPos != ROW_END_MARKER ){
             //TODO: vectorize this multiplication
-            int col = SPARSE_GROUP_SIZE*index[indexPos];
+            int col = SPARSE_GROUP_SIZE*idxPos;
 
-            assert( x.size() < col+SPARSE_GROUP_SIZE );
-            assert( weight.size() < weightPos+SPARSE_GROUP_SIZE);
+            assert( col+SPARSE_GROUP_SIZE <= x.size() );
+            assert( weightPos+SPARSE_GROUP_SIZE <= weight.size());
 
             for(int i=0; i<SPARSE_GROUP_SIZE; ++i)
                 sum += weight(weightPos++) * x(col+i);
@@ -127,9 +128,7 @@ Vectorf CompMatrix::operator*(const Vectorf &x)
             assert( row < nRows );
             y(row) = sum;
             sum = 0.f;
-
             ++row;
-            ++indexPos;
         }
     }
     return y;

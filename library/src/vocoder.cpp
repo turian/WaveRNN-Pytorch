@@ -41,10 +41,11 @@ int main(int argc, char* argv[])
     Vectorf x(112);
 
     for(int j=1; j<=112; ++j)
-        x(j) = 1. + 1./j;
+        x(j-1) = 1. + 1./j;
 
     Vectorf x1, x2;
     x1 = (*I)(x);
+
     x2 = (*GRU)(x);
 
     fclose(fd);

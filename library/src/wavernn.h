@@ -62,7 +62,7 @@ public:
     TorchLayer* loadNext( FILE* fd );
 
     //TODO: Turn this into variadic template function
-    virtual Vectorf operator()( Vectorf& x ){ assert(0); };
+    virtual Vectorf operator()( const Vectorf& x ){ assert(0); };
     virtual ~TorchLayer(){
         //TorchLayer takes ownership of loaded layers. Cleanup here.
         for( auto o : objects )
@@ -155,7 +155,7 @@ public:
     LinearLayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     LinearLayer* loadNext( FILE* fd );
-    virtual Vectorf operator()( const Vectorf& x );
+    virtual Vectorf operator()( const Vectorf& x ) override;
 };
 
 
