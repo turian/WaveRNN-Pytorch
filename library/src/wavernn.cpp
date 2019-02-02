@@ -23,28 +23,30 @@ TorchLayer *TorchLayer::loadNext(FILE *fd)
 
     case TorchLayer::Header::LayerType::Linear:
     {
-        LinearLayer* linear = reinterpret_cast<LinearLayer*>(this);
+        LinearLayer* linear = new LinearLayer();
         linear->loadNext(fd);
+        addObject(linear);
         return linear;
     }
     break;
 
     case TorchLayer::Header::LayerType::GRU:
     {
-        GRULayer* gru = reinterpret_cast<GRULayer*>(this);
+        GRULayer* gru = new GRULayer();
         gru->loadNext(fd);
+        addObject(gru);
         return gru;
     }
     break;
 
     case TorchLayer::Header::LayerType::Conv1d:
     case TorchLayer::Header::LayerType::Conv2d:
+    case TorchLayer::Header::LayerType::BatchNorm1d:
     default:
         return nullptr;
     }
 }
 
-//void readCompressed(FILE* fd,)
 
 LinearLayer* LinearLayer::loadNext(FILE *fd)
 {
@@ -58,6 +60,10 @@ LinearLayer* LinearLayer::loadNext(FILE *fd)
     fread(bias.data(), header.elSize, header.nRows, fd);
 }
 
+Vectorf LinearLayer::operator()(const Vectorf &x)
+{
+    return mat*x;
+}
 
 GRULayer* GRULayer::loadNext(FILE *fd)
 {
@@ -65,33 +71,66 @@ GRULayer* GRULayer::loadNext(FILE *fd)
     fread( &header, sizeof(GRULayer::Header), 1, fd);
     assert(header.elSize==4 or header.elSize==2);
 
-    nRows = header.nRows;
-    nCols = header.nCols;
+    nRows = header.nHidden;
+    nCols = header.nInput;
 
-    b_ir.resize(header.nRows);
-    b_iz.resize(header.nRows);
-    b_in.resize(header.nRows);
+    b_ir.resize(header.nHidden);
+    b_iz.resize(header.nHidden);
+    b_in.resize(header.nHidden);
 
-    b_hr.resize(header.nRows);
-    b_hz.resize(header.nRows);
-    b_hn.resize(header.nRows);
+    b_hr.resize(header.nHidden);
+    b_hz.resize(header.nHidden);
+    b_hn.resize(header.nHidden);
 
 
-    W_ir.read( fd, header.elSize);
-    W_iz.read( fd, header.elSize);
-    W_in.read( fd, header.elSize);
+    W_ir.read( fd, header.elSize, header.nHidden, header.nInput);
+    W_iz.read( fd, header.elSize, header.nHidden, header.nInput);
+    W_in.read( fd, header.elSize, header.nHidden, header.nInput);
 
-    W_hr.read( fd, header.elSize);
-    W_hz.read( fd, header.elSize);
-    W_hn.read( fd, header.elSize);
+    W_hr.read( fd, header.elSize, header.nHidden, header.nHidden);
+    W_hz.read( fd, header.elSize, header.nHidden, header.nHidden);
+    W_hn.read( fd, header.elSize, header.nHidden, header.nHidden);
 
-    fread(b_ir.data(), header.elSize, header.nRows, fd);
-    fread(b_iz.data(), header.elSize, header.nRows, fd);
-    fread(b_in.data(), header.elSize, header.nRows, fd);
+    fread(b_ir.data(), header.elSize, header.nHidden, fd);
+    fread(b_iz.data(), header.elSize, header.nHidden, fd);
+    fread(b_in.data(), header.elSize, header.nHidden, fd);
 
-    fread(b_hr.data(), header.elSize, header.nRows, fd);
-    fread(b_hz.data(), header.elSize, header.nRows, fd);
-    fread(b_hn.data(), header.elSize, header.nRows, fd);
+    fread(b_hr.data(), header.elSize, header.nHidden, fd);
+    fread(b_hz.data(), header.elSize, header.nHidden, fd);
+    fread(b_hn.data(), header.elSize, header.nHidden, fd);
 }
 
 
+
+Vectorf CompMatrix::operator*(const Vectorf &x)
+{
+    Vectorf y(nRows);
+    assert(nCols == x.size());
+
+    int indexPos = 0;
+    int weightPos = 0;
+    int row = 0;
+    float sum = 0;
+
+    while( row < nRows ){
+        if( index[indexPos] != ROW_END_MARKER ){
+            //TODO: vectorize this multiplication
+            int col = SPARSE_GROUP_SIZE*index[indexPos];
+
+            assert( x.size() < col+SPARSE_GROUP_SIZE );
+            assert( weight.size() < weightPos+SPARSE_GROUP_SIZE);
+
+            for(int i=0; i<SPARSE_GROUP_SIZE; ++i)
+                sum += weight(weightPos++) * x(col+i);
+
+        } else { //end of row. assign output and continue to the next row.
+            assert( row < nRows );
+            y(row) = sum;
+            sum = 0.f;
+
+            ++row;
+            ++indexPos;
+        }
+    }
+    return y;
+}

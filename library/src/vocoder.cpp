@@ -33,10 +33,19 @@ int main(int argc, char* argv[])
     FILE *fd = fopen(weights_file.c_str(), "rb");
     assert(fd);
 
-    TorchLayer *torchLayer;
+    TorchLayer *torchLayer = new TorchLayer();
 
-    TorchLayer* layer1 = torchLayer->loadNext(fd);
-    TorchLayer* layer2 = torchLayer->loadNext(fd);
+    TorchLayer* I = torchLayer->loadNext(fd);
+    TorchLayer* GRU = torchLayer->loadNext(fd);
+
+    Vectorf x(112);
+
+    for(int j=1; j<=112; ++j)
+        x(j) = 1. + 1./j;
+
+    Vectorf x1, x2;
+    x1 = (*I)(x);
+    x2 = (*GRU)(x);
 
     fclose(fd);
     return 0;

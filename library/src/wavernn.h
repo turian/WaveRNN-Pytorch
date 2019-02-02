@@ -7,20 +7,29 @@
 
 using namespace Eigen;
 
+const int SPARSE_GROUP_SIZE = 8; //When pruning we use groups of 8 to reduce index
+const uint8_t ROW_END_MARKER = 255;
+
 typedef Matrix<float, Dynamic, Dynamic, RowMajor> Matrixf;
 typedef Tensor<float, 3, RowMajor> Tensor3df;
 typedef Tensor<float, 4, RowMajor> Tensor4df;
-typedef VectorXf Vectorf;
-typedef Matrix<int8_t, Dynamic, 1> Vectori8;
+typedef Matrix<float, Dynamic, 1> Vectorf;
+typedef Matrix<uint8_t, Dynamic, 1> Vectori8;
 
 
 class CompMatrix{
     Vectorf weight;
     Vectori8 index;
-public:
+    int nRows, nCols;
 
-    void read(FILE* fd, int elSize){
-        int nWeights, nIndex;
+public:
+    CompMatrix()=default;
+
+    void read(FILE* fd, int elSize, int _nRows, int _nCols){
+        int nWeights=0;
+        int nIndex=0;
+        nRows = _nRows;
+        nCols = _nCols;
 
         fread(&nWeights, sizeof(int), 1, fd);
 
@@ -31,19 +40,35 @@ public:
         index.resize(nIndex);
         fread(index.data(), sizeof(int8_t), nIndex, fd);
     }
+
+    Vectorf operator*( const Vectorf& x);
 };
 
-class TorchLayer{
+
+//TODO: This should be turned into a proper class factory pattern
+class TorchLayer {
     struct alignas(1) Header{
         //int size; //size of data blob, not including this header
         enum class LayerType : char { Conv1d=1, Conv2d=2, BatchNorm1d=3, Linear=4, GRU=5 } layerType;
         char name[64]; //layer name for debugging
     };
 
+    std::vector<TorchLayer*> objects;
+    void addObject( TorchLayer* o){
+        objects.push_back(o);
+    }
+
 public:
     TorchLayer* loadNext( FILE* fd );
-    virtual Vectorf operator()( Vectorf& x ) = 0;
-    virtual ~TorchLayer() = default;
+
+    //TODO: Turn this into variadic template function
+    virtual Vectorf operator()( Vectorf& x ){ assert(0); };
+    virtual ~TorchLayer(){
+        //TorchLayer takes ownership of loaded layers. Cleanup here.
+        for( auto o : objects )
+            delete o;
+        objects.clear();
+    };
 };
 
 
@@ -125,19 +150,20 @@ class LinearLayer : public TorchLayer{
     int nRows;
     int nCols;
 
+
 public:
-    LinearLayer() = delete;
+    LinearLayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     LinearLayer* loadNext( FILE* fd );
-    virtual Vectorf operator()( Vectorf& x );
+    virtual Vectorf operator()( const Vectorf& x );
 };
 
 
 class GRULayer : public TorchLayer{
     struct alignas(1) Header{
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
-        int nRows;
-        int nCols;
+        int nHidden;
+        int nInput;
     };
 
     CompMatrix W_ir,W_iz,W_in;
@@ -149,11 +175,11 @@ class GRULayer : public TorchLayer{
 
 
 public:
-    GRULayer() = delete;
+    GRULayer() = default;
 
     //call TorchLayer loadNext, not derived loadNext
     GRULayer* loadNext( FILE* fd );
-    virtual Vectorf operator()( Vectorf& x, Vectorf& hx );
+    virtual Vectorf operator()( Vectorf& x, Vectorf& hx ) {assert(0); return x;};
 
 };
 
