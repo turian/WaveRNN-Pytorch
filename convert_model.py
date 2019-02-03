@@ -103,6 +103,45 @@ def save_layer(f, layer):
 
 
 
+def torch_test(model, checkpoint, x, h):
+    state=checkpoint['state_dict']
+    rnn1 = model.rnn1
+
+    weight_ih_l0 = rnn1.weight_ih_l0.detach().cpu().numpy()
+    weight_hh_l0 = rnn1.weight_hh_l0.detach().cpu().numpy()
+    bias_ih_l0 = rnn1.bias_ih_l0.detach().cpu().numpy()
+    bias_hh_l0 = rnn1.bias_hh_l0.detach().cpu().numpy()
+
+    W_ir,W_iz,W_in=np.vsplit(weight_ih_l0, 3)
+    W_hr,W_hz,W_hn=np.vsplit(weight_hh_l0, 3)
+
+    b_ir,b_iz,b_in=np.split(bias_ih_l0, 3)
+    b_hr,b_hz,b_hn=np.split(bias_hh_l0, 3)
+
+    gru_cell = nn.GRUCell(rnn1.input_size, rnn1.hidden_size).cpu()
+    gru_cell.weight_hh.data = rnn1.weight_hh_l0.cpu().data
+    gru_cell.weight_ih.data = rnn1.weight_ih_l0.cpu().data
+    gru_cell.bias_hh.data = rnn1.bias_hh_l0.cpu().data
+    gru_cell.bias_ih.data = rnn1.bias_ih_l0.cpu().data
+
+    # hx_ref = hx.clone()
+    # x_ref = x.clone()
+    #hx_gru = gru_cell(x_ref, hx_ref)
+
+    sigmoid = sp.special.expit
+    r = sigmoid( np.matmul(W_ir, x).squeeze() + b_ir + np.matmul(W_hr, h).squeeze() + b_hr)
+    z = sigmoid( np.matmul(W_iz, x).squeeze() + b_iz + np.matmul(W_hz, h).squeeze() + b_hz)
+    n = np.tanh( np.matmul(W_in, x).squeeze() + b_in + r * (np.matmul(W_hn, h).squeeze() + b_hn))
+    hout = (1-z)*n+z*h.squeeze()
+    print(hout)
+
+    #hx_gru=hx_gru.detach().numpy().squeeze()
+    #dif = hx_gru-hout
+
+    print()
+
+
+
 if __name__ == "__main__":
     args = docopt(__doc__)
     print("Command line args:\n", args)
@@ -117,9 +156,11 @@ if __name__ == "__main__":
     checkpoint = torch.load(checkpoint_file_name, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
 
-    x=1.+1./np.arange(1,113)
-    W=model.I.weight.cpu().detach().numpy()
-    print(np.matmul(W,x))
+    x = 1.+1./np.arange(1,513)
+    hx = -3. + 2./np.arange(1,513)
+    torch_test(model, checkpoint, x, hx)
+
+
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)

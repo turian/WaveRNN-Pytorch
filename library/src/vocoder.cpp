@@ -38,15 +38,23 @@ int main(int argc, char* argv[])
     TorchLayer* I = torchLayer->loadNext(fd);
     TorchLayer* GRU = torchLayer->loadNext(fd);
 
-    Vectorf x(112);
+// Test for linear layer
+//    Vectorf x(112);
+//    for(int j=1; j<=112; ++j)
+//        x(j-1) = 1. + 1./j;
+//    Vectorf x1, x2;
+//    x1 = (*I)(x);
 
-    for(int j=1; j<=112; ++j)
+
+    Vectorf x(512), hx(512);
+
+    for(int j=1; j<=512; ++j){
         x(j-1) = 1. + 1./j;
+        hx(j-1) = -3. + 2./j;
+    }
 
-    Vectorf x1, x2;
-    x1 = (*I)(x);
-
-    x2 = (*GRU)(x);
+    Vectorf h1;
+    h1 = (*GRU)(x, hx);
 
     fclose(fd);
     return 0;

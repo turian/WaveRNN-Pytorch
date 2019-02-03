@@ -9,8 +9,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 #include <stdio.h>
+#include <cmath>
 #include "wavernn.h"
 
+inline Vectorf sigmoid( const Vectorf& v )
+{
+    //TODO: optimize this
+    //maybe use one of these approximations: https://stackoverflow.com/questions/10732027/fast-sigmoid-algorithm
+    Vectorf y = 1.f / ( 1.f + Eigen::exp( - v.array()));
+    return y;
+}
+
+inline Vectorf tanh( const Vectorf& v )
+{
+    //TODO: optimize this
+    Vectorf y = Eigen::tanh( v.array() );
+    return y;
+}
 
 TorchLayer *TorchLayer::loadNext(FILE *fd)
 {
@@ -62,7 +77,7 @@ LinearLayer* LinearLayer::loadNext(FILE *fd)
 
 Vectorf LinearLayer::operator()(const Vectorf &x)
 {
-    return mat*x;
+    return sigmoid(mat*x);
 }
 
 GRULayer* GRULayer::loadNext(FILE *fd)
@@ -98,6 +113,18 @@ GRULayer* GRULayer::loadNext(FILE *fd)
     fread(b_hr.data(), header.elSize, header.nHidden, fd);
     fread(b_hz.data(), header.elSize, header.nHidden, fd);
     fread(b_hn.data(), header.elSize, header.nHidden, fd);
+}
+
+
+Vectorf GRULayer::operator()(const Vectorf &x, const Vectorf &hx)
+{
+    Vectorf r, z, n, hout;
+
+    r = sigmoid( W_ir*x + b_ir + W_hr*hx + b_hr);
+    z = sigmoid( W_iz*x + b_iz + W_hz*hx + b_hz);
+    n = tanh( W_in*x + b_in + (r.array() * (W_hn*hx + b_hn).array()).matrix());
+    hout = (1.f-z.array()) * n.array() + z.array() * hx.array();
+    return hout;
 }
 
 

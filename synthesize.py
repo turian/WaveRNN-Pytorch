@@ -25,49 +25,6 @@ import numpy as np
 import scipy as sp
 
 
-def torch_test(model, checkpoint, mel):
-    state=checkpoint['state_dict']
-    rnn1 = model.rnn1
-
-    weight_ih_l0 = rnn1.weight_ih_l0.detach().cpu().numpy()
-    weight_hh_l0 = rnn1.weight_hh_l0.detach().cpu().numpy()
-    bias_ih_l0 = rnn1.bias_ih_l0.detach().cpu().numpy()
-    bias_hh_l0 = rnn1.bias_hh_l0.detach().cpu().numpy()
-
-    W_ir,W_iz,W_in=np.vsplit(weight_ih_l0, 3)
-    W_hr,W_hz,W_hn=np.vsplit(weight_hh_l0, 3)
-
-    b_ir,b_iz,b_in=np.split(bias_ih_l0, 3)
-    b_hr,b_hz,b_hn=np.split(bias_hh_l0, 3)
-
-    gru_cell = nn.GRUCell(rnn1.input_size, rnn1.hidden_size).cpu()
-    gru_cell.weight_hh.data = rnn1.weight_hh_l0.cpu().data
-    gru_cell.weight_ih.data = rnn1.weight_ih_l0.cpu().data
-    gru_cell.bias_hh.data = rnn1.bias_hh_l0.cpu().data
-    gru_cell.bias_ih.data = rnn1.bias_ih_l0.cpu().data
-
-    hx_ref = torch.randn(1, rnn1.hidden_size)
-    hx = hx_ref.clone()
-    x_ref = torch.randn(1, rnn1.input_size)
-    x = x_ref.clone()
-
-    hx_gru = gru_cell(x, hx)
-
-    x = x_ref.clone().numpy().T
-    h = hx_ref.clone().numpy().T
-
-    sigmoid = sp.special.expit
-    r = sigmoid( np.matmul(W_ir, x).squeeze() + b_ir + np.matmul(W_hr, h).squeeze() + b_hr)
-    z = sigmoid( np.matmul(W_iz, x).squeeze() + b_iz + np.matmul(W_hz, h).squeeze() + b_hz)
-    n = np.tanh( np.matmul(W_in, x).squeeze() + b_in + r * (np.matmul(W_hn, h).squeeze() + b_hn))
-    hout = (1-z)*n+z*h.squeeze()
-
-    hx_gru=hx_gru.detach().numpy().squeeze()
-    dif = hx_gru-hout
-
-    print()
-
-
 
 if __name__ == "__main__":
     args = docopt(__doc__)
@@ -98,8 +55,6 @@ if __name__ == "__main__":
     model = build_model().to(device)
     checkpoint = torch.load(latest_checkpoint, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
-
-    torch_test(model, checkpoint, mel)
 
     print("I: %.3f million"%(num_params_count(model.I)))
     print("Upsample: %.3f million"%(num_params_count(model.upsample)))
