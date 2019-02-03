@@ -140,6 +140,22 @@ def torch_test(model, checkpoint, x, h):
 
     print()
 
+def torch_test_conv1d( model, checkpoint ):
+
+    x=np.matmul((1.+1./np.arange(1,81))[:,np.newaxis], (-3 + 2./np.arange(1,101))[np.newaxis,:])
+    x=np.matmul((1.+1./np.arange(1,81))[:,np.newaxis], (-3 + 2./np.arange(1,11))[np.newaxis,:])
+
+    xt=torch.tensor(x[np.newaxis,:,:],dtype=torch.float32)
+    weight=model.upsample.resnet.conv_in.weight
+    c = torch.nn.functional.conv1d(torch.tensor(xt).type(torch.FloatTensor), weight)
+    c1=c.detach().numpy().squeeze()
+
+
+    w = weight.detach().numpy()
+    y = np.zeros([128,6])
+    for i1 in range(128):
+            for i3 in range(6):
+                y[i1,i3] = (x[:,i3:i3+5]*w[i1,:,:]).sum()
 
 
 if __name__ == "__main__":
@@ -156,11 +172,10 @@ if __name__ == "__main__":
     checkpoint = torch.load(checkpoint_file_name, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
 
-    x = 1.+1./np.arange(1,513)
-    hx = -3. + 2./np.arange(1,513)
-    torch_test(model, checkpoint, x, hx)
-
-
+    # x = 1.+1./np.arange(1,513)
+    # hx = -3. + 2./np.arange(1,513)
+    # torch_test(model, checkpoint, x, hx)
+    torch_test_conv1d(model, checkpoint)
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)

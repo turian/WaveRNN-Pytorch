@@ -91,7 +91,7 @@ class Conv1dLayer : TorchLayer{
 
 public:
 
-    virtual Vectorf operator()( Vectorf& x );
+    virtual Vectorf operator()( const Vectorf& x );
 
 };
 
