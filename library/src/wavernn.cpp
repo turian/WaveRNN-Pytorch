@@ -160,3 +160,42 @@ Vectorf CompMatrix::operator*(const Vectorf &x)
     }
     return y;
 }
+
+Conv1dLayer *Conv1dLayer::loadNext(FILE *fd)
+{
+    Conv1dLayer::Header header;
+    fread( &header, sizeof(Conv1dLayer::Header), 1, fd);
+    assert(header.elSize==4 or header.elSize==2);
+    hasBias = header.useBias;
+    inChannels = header.inChannels;
+    outChannels = header.outChannels;
+    nKernel = header.kernelSize;
+
+    weight.resize(outChannels);
+    for(int i=0; i<outChannels; ++i){
+        weight[i].resize(inChannels, nKernel);
+        fread(weight[i].data(), header.elSize, inChannels*nKernel, fd);
+    }
+
+    if( hasBias ){
+        bias.resize(outChannels);
+        fread(bias.data(), header.elSize, outChannels, fd);
+    }
+}
+
+Matrixf Conv1dLayer::operator()(const Matrixf &x)
+{
+//    y = np.zeros([128,6])
+//    for i1 in range(128):
+//            for i3 in range(6):
+//                y[i1,i3] = (x[:,i3:i3+5]*w[i1,:,:]).sum()
+
+    int convDim = x.cols()-nKernel+1;
+    Matrixf y(outChannels, convDim);
+
+    for(int outIdx = 0; outIdx<outChannels; ++outIdx){
+        for(int kernIdx = 0; kernIdx < convDim; ++kernIdx ){
+            y(outIdx, kernIdx) = ( x.block(0, kernIdx, inChannels, convDim).cwiseProduct( weight[outIdx] ) ).sum();
+        }
+    }
+}

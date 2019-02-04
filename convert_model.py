@@ -55,7 +55,15 @@ def linear_saver(f, layer):
     f.write(bias.tobytes(order='C'))
 
 def conv1d_saver(f, layer):
-    pass
+    weight = layer.weight.cpu().detach().numpy()
+    in_channels, out_channels, nkernel = weight.shape
+    v = struct.pack('@b?iii', elSize, (layer.bias is None), in_channels, out_channels, nkernel)
+    f.write(v)
+    f.write(weight.tobytes(order='C'))
+    if not (layer.bias is None ):
+        bias = layer.bias.cpu().detach().numpy()
+        f.write(bias.tobytes(order='C'))
+    return
 
 def conv2d_saver(f, layer):
     pass
@@ -100,10 +108,13 @@ def save_layer(f, layer):
     v = struct.pack('@b64s', layer_enum[layer_type_name], layer.__str__().encode() )
     f.write(v)
     savers[layer_type_name](f, layer)
+    return
 
 
+def torch_test_gru(model, checkpoint):
+    x = 1.+1./np.arange(1,513)
+    h = -3. + 2./np.arange(1,513)
 
-def torch_test(model, checkpoint, x, h):
     state=checkpoint['state_dict']
     rnn1 = model.rnn1
 
@@ -138,11 +149,11 @@ def torch_test(model, checkpoint, x, h):
     #hx_gru=hx_gru.detach().numpy().squeeze()
     #dif = hx_gru-hout
 
-    print()
+    return
 
 def torch_test_conv1d( model, checkpoint ):
 
-    x=np.matmul((1.+1./np.arange(1,81))[:,np.newaxis], (-3 + 2./np.arange(1,101))[np.newaxis,:])
+    #x=np.matmul((1.+1./np.arange(1,81))[:,np.newaxis], (-3 + 2./np.arange(1,101))[np.newaxis,:])
     x=np.matmul((1.+1./np.arange(1,81))[:,np.newaxis], (-3 + 2./np.arange(1,11))[np.newaxis,:])
 
     xt=torch.tensor(x[np.newaxis,:,:],dtype=torch.float32)
@@ -172,13 +183,13 @@ if __name__ == "__main__":
     checkpoint = torch.load(checkpoint_file_name, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
 
-    # x = 1.+1./np.arange(1,513)
-    # hx = -3. + 2./np.arange(1,513)
-    # torch_test(model, checkpoint, x, hx)
-    torch_test_conv1d(model, checkpoint)
+
+    # torch_test_gru(model, checkpoint)
+    # torch_test_conv1d(model, checkpoint)
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)
         save_layer(f, model.rnn1)
+        save_layer(f, model.upsample.resnet.conv_in)
 
     print()

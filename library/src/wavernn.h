@@ -76,23 +76,24 @@ public:
 class Conv1dLayer : TorchLayer{
     struct alignas(1) Header{
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
-        bool useBias;
+        int8_t useBias;
         int inChannels;
         int outChannels;
         int kernelSize;
     };
 
-    Tensor3df weight;
+    std::vector<Matrixf> weight;
     Vectorf bias;
 
-
+    bool hasBias;
+    int inChannels;
+    int outChannels;
+    int nKernel;
+public:
+    Conv1dLayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     Conv1dLayer* loadNext( FILE* fd );
-
-public:
-
-    virtual Vectorf operator()( const Vectorf& x );
-
+    virtual Matrixf operator()( const Matrixf& x );
 };
 
 class Conv2dLayer : TorchLayer{
@@ -114,8 +115,7 @@ class Conv2dLayer : TorchLayer{
 
 public:
 
-    virtual Vectorf operator()( Vectorf& x );
-
+    virtual Vectorf operator()( Matrixf& x );
 };
 
 class BatchNorm1dLayer : TorchLayer{
@@ -129,13 +129,11 @@ class BatchNorm1dLayer : TorchLayer{
     Vectorf running_mean;
     Vectorf running_var;
 
-
 public:
     //call TorchLayer loadNext, not derived loadNext
     BatchNorm1dLayer* loadNext( FILE* fd );
 
     virtual Vectorf operator()( Vectorf& x );
-
 };
 
 
@@ -177,11 +175,9 @@ class GRULayer : public TorchLayer{
 
 public:
     GRULayer() = default;
-
     //call TorchLayer loadNext, not derived loadNext
     GRULayer* loadNext( FILE* fd );
     virtual Vectorf operator()( const Vectorf& x, const Vectorf& hx ) override;
-
 };
 
 

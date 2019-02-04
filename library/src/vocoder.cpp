@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
 
     TorchLayer* I = torchLayer->loadNext(fd);
     TorchLayer* GRU = torchLayer->loadNext(fd);
+    TorchLayer* conv_in = torchLayer->loadNext(fd);
 
 // Test for linear layer
 //    Vectorf x(112);
