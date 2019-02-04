@@ -56,8 +56,8 @@ def linear_saver(f, layer):
 
 def conv1d_saver(f, layer):
     weight = layer.weight.cpu().detach().numpy()
-    in_channels, out_channels, nkernel = weight.shape
-    v = struct.pack('@b?iii', elSize, (layer.bias is None), in_channels, out_channels, nkernel)
+    out_channels, in_channels, nkernel = weight.shape
+    v = struct.pack('@b?iii', elSize, not(layer.bias is None), in_channels, out_channels, nkernel)
     f.write(v)
     f.write(weight.tobytes(order='C'))
     if not (layer.bias is None ):
@@ -167,7 +167,7 @@ def torch_test_conv1d( model, checkpoint ):
     for i1 in range(128):
             for i3 in range(6):
                 y[i1,i3] = (x[:,i3:i3+5]*w[i1,:,:]).sum()
-
+    return y
 
 if __name__ == "__main__":
     args = docopt(__doc__)
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
 
     # torch_test_gru(model, checkpoint)
-    # torch_test_conv1d(model, checkpoint)
+    torch_test_conv1d(model, checkpoint)
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)

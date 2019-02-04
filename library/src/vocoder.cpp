@@ -33,29 +33,35 @@ int main(int argc, char* argv[])
     FILE *fd = fopen(weights_file.c_str(), "rb");
     assert(fd);
 
-    TorchLayer *torchLayer = new TorchLayer();
-
-    TorchLayer* I = torchLayer->loadNext(fd);
-    TorchLayer* GRU = torchLayer->loadNext(fd);
-    TorchLayer* conv_in = torchLayer->loadNext(fd);
+    TorchLayer I;  I.loadNext(fd);
+    TorchLayer GRU; GRU.loadNext(fd);
+    TorchLayer conv_in; conv_in.loadNext(fd);
 
 // Test for linear layer
 //    Vectorf x(112);
 //    for(int j=1; j<=112; ++j)
 //        x(j-1) = 1. + 1./j;
 //    Vectorf x1, x2;
-//    x1 = (*I)(x);
+//    x1 = I(x);
 
 
-    Vectorf x(512), hx(512);
+//    Vectorf x(512), hx(512);
 
-    for(int j=1; j<=512; ++j){
-        x(j-1) = 1. + 1./j;
-        hx(j-1) = -3. + 2./j;
+//    for(int j=1; j<=512; ++j){
+//        x(j-1) = 1. + 1./j;
+//        hx(j-1) = -3. + 2./j;
+//    }
+
+//    Vectorf h1 = GRU(x, hx);
+
+    Matrixf mel(80,10);
+    for(int i=0; i<mel.rows(); ++i){
+        for(int j=0; j<mel.cols(); ++j){
+            mel(i,j) = (1.+1./(i+1))*(-3.+2./(j+1));
+        }
     }
 
-    Vectorf h1;
-    h1 = (*GRU)(x, hx);
+    Matrixf aux = conv_in(mel);
 
     fclose(fd);
     return 0;

@@ -44,36 +44,41 @@ public:
     Vectorf operator*( const Vectorf& x);
 };
 
+class BaseLayer {
+public:
+    BaseLayer() = default;
+    virtual BaseLayer* loadNext( FILE* fd ) {assert(0); return nullptr;};
+    virtual Matrixf apply( const Matrixf& x){assert(0); return Matrixf();};
+    virtual Vectorf apply( const Vectorf& x){assert(0); return Vectorf();};
+    virtual Vectorf apply( const Vectorf& x, const Vectorf& h){assert(0); return Vectorf();};
+};
 
 //TODO: This should be turned into a proper class factory pattern
-class TorchLayer {
+class TorchLayer : public BaseLayer {
     struct alignas(1) Header{
         //int size; //size of data blob, not including this header
         enum class LayerType : char { Conv1d=1, Conv2d=2, BatchNorm1d=3, Linear=4, GRU=5 } layerType;
         char name[64]; //layer name for debugging
     };
 
-    std::vector<TorchLayer*> objects;
-    void addObject( TorchLayer* o){
-        objects.push_back(o);
-    }
+    BaseLayer* impl;
 
 public:
-    TorchLayer* loadNext( FILE* fd );
+    BaseLayer* loadNext( FILE* fd );
 
-    //TODO: Turn this into variadic template function
-    virtual Vectorf operator()( const Vectorf& x ){ assert(0); };
-    virtual Vectorf operator()( const Vectorf& x, const Vectorf& hx ){ assert(0); };
+    template< typename T> T operator()( const T& x){
+        return impl->apply( x );
+    }
+    template< typename T, typename T2> T operator()( const T& x, const T2& h ){ return impl->apply( x, h );}
+
     virtual ~TorchLayer(){
-        //TorchLayer takes ownership of loaded layers. Cleanup here.
-        for( auto o : objects )
-            delete o;
-        objects.clear();
-    };
+        delete impl;
+        impl=nullptr;
+    }
 };
 
 
-class Conv1dLayer : TorchLayer{
+class Conv1dLayer : public TorchLayer{
     struct alignas(1) Header{
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         int8_t useBias;
@@ -93,10 +98,10 @@ public:
     Conv1dLayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     Conv1dLayer* loadNext( FILE* fd );
-    virtual Matrixf operator()( const Matrixf& x );
+    Matrixf apply( const Matrixf& x ) override;
 };
 
-class Conv2dLayer : TorchLayer{
+class Conv2dLayer : public TorchLayer{
     struct alignas(1) Header{
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         bool useBias;
@@ -109,16 +114,14 @@ class Conv2dLayer : TorchLayer{
     Tensor4df weight;
     Vectorf bias;
 
-
+public:
+    Conv2dLayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     Conv2dLayer* loadNext( FILE* fd );
-
-public:
-
-    virtual Vectorf operator()( Matrixf& x );
+    Matrixf apply( const Matrixf& x ) override;
 };
 
-class BatchNorm1dLayer : TorchLayer{
+class BatchNorm1dLayer : public TorchLayer{
     struct alignas(1) Header{
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         int inChannels;
@@ -133,7 +136,7 @@ public:
     //call TorchLayer loadNext, not derived loadNext
     BatchNorm1dLayer* loadNext( FILE* fd );
 
-    virtual Vectorf operator()( Vectorf& x );
+    Vectorf apply( const Vectorf& x ) override;
 };
 
 
@@ -154,7 +157,7 @@ public:
     LinearLayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     LinearLayer* loadNext( FILE* fd );
-    virtual Vectorf operator()( const Vectorf& x ) override;
+    Vectorf apply( const Vectorf& x ) override;
 };
 
 
@@ -177,7 +180,7 @@ public:
     GRULayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     GRULayer* loadNext( FILE* fd );
-    virtual Vectorf operator()( const Vectorf& x, const Vectorf& hx ) override;
+    Vectorf apply( const Vectorf& x, const Vectorf& hx ) override;
 };
 
 

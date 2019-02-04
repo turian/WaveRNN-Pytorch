@@ -27,7 +27,7 @@ inline Vectorf tanh( const Vectorf& v )
     return y;
 }
 
-TorchLayer *TorchLayer::loadNext(FILE *fd)
+BaseLayer *TorchLayer::loadNext(FILE *fd)
 {
     TorchLayer::Header header;
     fread(&header, sizeof(TorchLayer::Header), 1, fd);
@@ -38,25 +38,37 @@ TorchLayer *TorchLayer::loadNext(FILE *fd)
 
     case TorchLayer::Header::LayerType::Linear:
     {
-        LinearLayer* linear = new LinearLayer();
-        linear->loadNext(fd);
-        addObject(linear);
-        return linear;
+        impl = new LinearLayer();
+        impl->loadNext(fd);
+        return impl;
     }
     break;
 
     case TorchLayer::Header::LayerType::GRU:
     {
-        GRULayer* gru = new GRULayer();
-        gru->loadNext(fd);
-        addObject(gru);
-        return gru;
+        impl = new GRULayer();
+        impl->loadNext(fd);
+        return impl;
     }
     break;
 
     case TorchLayer::Header::LayerType::Conv1d:
-    case TorchLayer::Header::LayerType::Conv2d:
+    {
+        impl = new Conv1dLayer();
+        impl->loadNext(fd);
+        return impl;
+    }
+    case TorchLayer::Header::LayerType::Conv2d:{
+        impl = new Conv2dLayer();
+        impl->loadNext(fd);
+        return impl;
+    }
     case TorchLayer::Header::LayerType::BatchNorm1d:
+    {
+        impl = new BatchNorm1dLayer();
+        impl->loadNext(fd);
+        return impl;
+    }
     default:
         return nullptr;
     }
@@ -75,7 +87,7 @@ LinearLayer* LinearLayer::loadNext(FILE *fd)
     fread(bias.data(), header.elSize, header.nRows, fd);
 }
 
-Vectorf LinearLayer::operator()(const Vectorf &x)
+Vectorf LinearLayer::apply(const Vectorf &x)
 {
     return sigmoid(mat*x);
 }
@@ -116,7 +128,7 @@ GRULayer* GRULayer::loadNext(FILE *fd)
 }
 
 
-Vectorf GRULayer::operator()(const Vectorf &x, const Vectorf &hx)
+Vectorf GRULayer::apply(const Vectorf &x, const Vectorf &hx)
 {
     Vectorf r, z, n, hout;
 
@@ -126,7 +138,6 @@ Vectorf GRULayer::operator()(const Vectorf &x, const Vectorf &hx)
     hout = (1.f-z.array()) * n.array() + z.array() * hx.array();
     return hout;
 }
-
 
 
 Vectorf CompMatrix::operator*(const Vectorf &x)
@@ -183,19 +194,40 @@ Conv1dLayer *Conv1dLayer::loadNext(FILE *fd)
     }
 }
 
-Matrixf Conv1dLayer::operator()(const Matrixf &x)
+Matrixf Conv1dLayer::apply(const Matrixf &x)
 {
-//    y = np.zeros([128,6])
-//    for i1 in range(128):
-//            for i3 in range(6):
-//                y[i1,i3] = (x[:,i3:i3+5]*w[i1,:,:]).sum()
-
     int convDim = x.cols()-nKernel+1;
     Matrixf y(outChannels, convDim);
 
     for(int outIdx = 0; outIdx<outChannels; ++outIdx){
         for(int kernIdx = 0; kernIdx < convDim; ++kernIdx ){
-            y(outIdx, kernIdx) = ( x.block(0, kernIdx, inChannels, convDim).cwiseProduct( weight[outIdx] ) ).sum();
+            y(outIdx, kernIdx) = ( x.block(0, kernIdx, inChannels, nKernel).cwiseProduct( weight[outIdx] ) ).sum();
         }
     }
+
+    if( hasBias ){
+        y.colwise() += bias;
+    }
+
+    return y;
+}
+
+Conv2dLayer *Conv2dLayer::loadNext(FILE *fd)
+{
+    assert(0);
+}
+
+Matrixf Conv2dLayer::apply(const Matrixf &x)
+{
+    assert(0);
+}
+
+BatchNorm1dLayer *BatchNorm1dLayer::loadNext(FILE *fd)
+{
+    assert(0);
+}
+
+Vectorf BatchNorm1dLayer::apply(const Vectorf &x)
+{
+    assert(0);
 }
