@@ -182,10 +182,17 @@ Conv1dLayer *Conv1dLayer::loadNext(FILE *fd)
     outChannels = header.outChannels;
     nKernel = header.kernelSize;
 
-    weight.resize(outChannels);
-    for(int i=0; i<outChannels; ++i){
-        weight[i].resize(inChannels, nKernel);
-        fread(weight[i].data(), header.elSize, inChannels*nKernel, fd);
+    if( nKernel==1 ){
+        //if kernel is 1x then convolution is just matrix multiplication. Load weight into the first element
+        //and handle separately
+        weight.resize(1);
+        fread(weight[0].data(), header.elSize, inChannels*outChannels*nKernel, fd);
+    } else {
+        weight.resize(outChannels);
+        for(int i=0; i<outChannels; ++i){
+            weight[i].resize(inChannels, nKernel);
+            fread(weight[i].data(), header.elSize, inChannels*nKernel, fd);
+        }
     }
 
     if( hasBias ){
@@ -199,13 +206,20 @@ Matrixf Conv1dLayer::apply(const Matrixf &x)
     int convDim = x.cols()-nKernel+1;
     Matrixf y(outChannels, convDim);
 
-    for(int outIdx = 0; outIdx<outChannels; ++outIdx){
-        for(int kernIdx = 0; kernIdx < convDim; ++kernIdx ){
-            y(outIdx, kernIdx) = ( x.block(0, kernIdx, inChannels, nKernel).cwiseProduct( weight[outIdx] ) ).sum();
+    if( nKernel == 1 ){
+        //fast path for x1 convolution kernel
+        y = weight[0] * x;
+    } else {
+        for(int outIdx = 0; outIdx<outChannels; ++outIdx){
+            for(int kernIdx = 0; kernIdx < convDim; ++kernIdx ){
+                y(outIdx, kernIdx) = ( x.block(0, kernIdx, inChannels, nKernel).cwiseProduct( weight[outIdx] ) ).sum();
+            }
         }
     }
 
+
     if( hasBias ){
+        //add bias to every column
         y.colwise() += bias;
     }
 

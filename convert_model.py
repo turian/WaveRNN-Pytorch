@@ -169,6 +169,23 @@ def torch_test_conv1d( model, checkpoint ):
                 y[i1,i3] = (x[:,i3:i3+5]*w[i1,:,:]).sum()
     return y
 
+def torch_test_conv1d_1x( model, checkpoint ):
+
+    #x=np.matmul((1.+1./np.arange(1,81))[:,np.newaxis], (-3 + 2./np.arange(1,101))[np.newaxis,:])
+    x=np.matmul((1.+1./np.arange(1,129))[:,np.newaxis], (-3 + 2./np.arange(1,11))[np.newaxis,:])
+
+    xt=torch.tensor(x[np.newaxis,:,:],dtype=torch.float32)
+    weight = model.upsample.resnet.layers[0].conv1.weight
+    c = torch.nn.functional.conv1d(torch.tensor(xt).type(torch.FloatTensor), weight)
+    c1=c.detach().numpy().squeeze()
+
+    w = weight.detach().numpy()
+    y = np.zeros([128, 10])
+    y = np.matmul(w.squeeze(), x)
+    return y
+
+
+
 if __name__ == "__main__":
     args = docopt(__doc__)
     print("Command line args:\n", args)
@@ -186,10 +203,11 @@ if __name__ == "__main__":
 
     # torch_test_gru(model, checkpoint)
     torch_test_conv1d(model, checkpoint)
+    torch_test_conv1d_1x(model, checkpoint)
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)
         save_layer(f, model.rnn1)
         save_layer(f, model.upsample.resnet.conv_in)
-
+        save_layer(f, model.upsample.resnet.layers[0].conv1)
     print()
