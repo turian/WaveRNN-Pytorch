@@ -66,7 +66,15 @@ def conv1d_saver(f, layer):
     return
 
 def conv2d_saver(f, layer):
-    pass
+    weight = layer.weight.cpu().detach().numpy()
+    assert(weight.shape[0]==weight.shape[1]==weight.shape[2]==1) #handles only specific type used in WaveRNN
+    weight = weight.squeeze()
+    nkernel = weight.shape[0]
+
+    v = struct.pack('@bi', elSize, nkernel)
+    f.write(v)
+    f.write(weight.tobytes(order='C'))
+    return
 
 def batchnorm1d_saver(f, layer):
     pass
@@ -184,6 +192,33 @@ def torch_test_conv1d_1x( model, checkpoint ):
     y = np.matmul(w.squeeze(), x)
     return y
 
+def torch_test_conv2d( model, checkpoint ):
+    layer = model.upsample.up_layers[1]
+    x=np.matmul((1.+1./np.arange(1,81))[:,np.newaxis], (-3 + 2./np.arange(1,21))[np.newaxis,:])
+
+    xt=torch.tensor(x[np.newaxis,:,:],dtype=torch.float32)
+    xt = xt.unsqueeze(1)
+    c = layer(xt)
+
+    weight = layer.weight
+    weight=weight.detach().numpy()
+    assert(weight.shape[0]==weight.shape[1]==weight.shape[2]==1)
+
+    xt=xt.squeeze()
+    weight = weight.squeeze()
+    npad = (weight.size-1)/2
+
+    y = np.zeros(xt.shape)
+    for i in range(xt.shape[0]):
+        a = np.pad(xt[i,:], (int(npad), int(npad)), mode='constant')
+        for j in range(xt.shape[1]):
+            y[i,j] = np.sum(a[j:j+9]*weight)
+
+    x = xt.squeeze()
+    weight = weight.squeeze()
+
+
+    return
 
 
 if __name__ == "__main__":
@@ -202,12 +237,15 @@ if __name__ == "__main__":
 
 
     # torch_test_gru(model, checkpoint)
-    torch_test_conv1d(model, checkpoint)
-    torch_test_conv1d_1x(model, checkpoint)
+    # torch_test_conv1d(model, checkpoint)
+    # torch_test_conv1d_1x(model, checkpoint)
+    # torch_test_conv2d(model, checkpoint)
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)
         save_layer(f, model.rnn1)
         save_layer(f, model.upsample.resnet.conv_in)
         save_layer(f, model.upsample.resnet.layers[0].conv1)
+        save_layer(f, model.upsample.up_layers[1])  #2d convolution
+
     print()

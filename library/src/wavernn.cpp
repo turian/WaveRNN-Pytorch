@@ -85,6 +85,7 @@ LinearLayer* LinearLayer::loadNext(FILE *fd)
 
     bias.resize(header.nRows);
     fread(bias.data(), header.elSize, header.nRows, fd);
+    return this;
 }
 
 Vectorf LinearLayer::apply(const Vectorf &x)
@@ -125,6 +126,8 @@ GRULayer* GRULayer::loadNext(FILE *fd)
     fread(b_hr.data(), header.elSize, header.nHidden, fd);
     fread(b_hz.data(), header.elSize, header.nHidden, fd);
     fread(b_hn.data(), header.elSize, header.nHidden, fd);
+
+    return this;
 }
 
 
@@ -186,6 +189,7 @@ Conv1dLayer *Conv1dLayer::loadNext(FILE *fd)
         //if kernel is 1x then convolution is just matrix multiplication. Load weight into the first element
         //and handle separately
         weight.resize(1);
+        weight[0].resize(inChannels, outChannels);
         fread(weight[0].data(), header.elSize, inChannels*outChannels*nKernel, fd);
     } else {
         weight.resize(outChannels);
@@ -199,6 +203,7 @@ Conv1dLayer *Conv1dLayer::loadNext(FILE *fd)
         bias.resize(outChannels);
         fread(bias.data(), header.elSize, outChannels, fd);
     }
+    return this;
 }
 
 Matrixf Conv1dLayer::apply(const Matrixf &x)
@@ -217,10 +222,9 @@ Matrixf Conv1dLayer::apply(const Matrixf &x)
         }
     }
 
-
     if( hasBias ){
         //add bias to every column
-        y.colwise() += bias;
+        y.rowwise() += bias;
     }
 
     return y;
@@ -228,17 +232,37 @@ Matrixf Conv1dLayer::apply(const Matrixf &x)
 
 Conv2dLayer *Conv2dLayer::loadNext(FILE *fd)
 {
-    assert(0);
+    Conv2dLayer::Header header;
+    fread( &header, sizeof(Conv2dLayer::Header), 1, fd);
+    assert(header.elSize==4 or header.elSize==2);
+
+    weight.resize(header.nKernel);
+    fread(weight.data(), header.elSize, header.nKernel, fd);
+    return this;
 }
 
 Matrixf Conv2dLayer::apply(const Matrixf &x)
 {
-    assert(0);
+
+    Matrixf y(x.rows(), x.cols());
+    int nKernel = weight.size();
+    int npad = (nKernel-1)/2;
+
+    //TODO: possibly optimize
+    for(int i=0; i<x.rows(); ++i){
+        Vectorf temp = Vectorf::Zero(x.cols()+2*npad);
+        temp.block(0, npad, 1, x.cols()) = x.block(i, 0, 1, x.cols());
+        for(int j=0; j<x.cols(); ++j){
+            y(i,j) = ( temp.block(0, j, 1, nKernel).array() * weight.array() ).sum();
+        }
+    }
+
+    return y;
 }
 
 BatchNorm1dLayer *BatchNorm1dLayer::loadNext(FILE *fd)
 {
-    assert(0);
+    return this;
 }
 
 Vectorf BatchNorm1dLayer::apply(const Vectorf &x)

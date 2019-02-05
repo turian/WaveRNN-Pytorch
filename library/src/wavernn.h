@@ -13,8 +13,8 @@ const uint8_t ROW_END_MARKER = 255;
 typedef Matrix<float, Dynamic, Dynamic, RowMajor> Matrixf;
 typedef Tensor<float, 3, RowMajor> Tensor3df;
 typedef Tensor<float, 4, RowMajor> Tensor4df;
-typedef Matrix<float, Dynamic, 1> Vectorf;
-typedef Matrix<uint8_t, Dynamic, 1> Vectori8;
+typedef Matrix<float, 1, Dynamic> Vectorf;
+typedef Matrix<uint8_t, 1, Dynamic> Vectori8;
 
 
 class CompMatrix{
@@ -104,15 +104,10 @@ public:
 class Conv2dLayer : public TorchLayer{
     struct alignas(1) Header{
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
-        bool useBias;
-        int inChannels;
-        int outChannels;
-        int kernelSize1;
-        int kernelSize2;
+        int nKernel;  //kernel size. special case of conv2d used in WaveRNN
     };
 
-    Tensor4df weight;
-    Vectorf bias;
+    Vectorf weight;
 
 public:
     Conv2dLayer() = default;
