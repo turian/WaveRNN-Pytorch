@@ -77,7 +77,9 @@ def conv2d_saver(f, layer):
     return
 
 def batchnorm1d_saver(f, layer):
-    pass
+
+
+    return
 
 def gru_saver(f, layer):
     weight_ih_l0 = layer.weight_ih_l0.detach().cpu().numpy()
@@ -220,6 +222,25 @@ def torch_test_conv2d( model, checkpoint ):
 
     return
 
+def torch_test_batchnorm1d( model, checkpoint ):
+
+    layer = model.upsample.resnet.layers[0].batch_norm1
+    x=np.matmul((1.+1./np.arange(1,129))[:,np.newaxis], (-3 + 2./np.arange(1,11))[np.newaxis,:])
+    xt=torch.tensor(x[np.newaxis,:,:],dtype=torch.float32)
+    layer.track_running_stats=True
+    layer.training = False
+
+    weight=layer.weight.detach().numpy()
+    bias=layer.bias.detach().numpy()
+    running_mean = layer.running_mean.detach().numpy()
+    running_var = layer.running_var.detach().numpy()
+    x1=xt.detach().numpy().squeeze()
+    eps = layer.eps
+    y = ((x1[:,1]-running_mean)/(np.sqrt(running_var+eps)))*weight+bias
+
+    c = layer(xt)
+
+    return
 
 if __name__ == "__main__":
     args = docopt(__doc__)
@@ -234,12 +255,13 @@ if __name__ == "__main__":
     model = build_model().to(device)
     checkpoint = torch.load(checkpoint_file_name, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
-
+    model = model.eval()
 
     # torch_test_gru(model, checkpoint)
     # torch_test_conv1d(model, checkpoint)
     # torch_test_conv1d_1x(model, checkpoint)
     # torch_test_conv2d(model, checkpoint)
+    torch_test_batchnorm1d(model, checkpoint)
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)
@@ -247,5 +269,5 @@ if __name__ == "__main__":
         save_layer(f, model.upsample.resnet.conv_in)
         save_layer(f, model.upsample.resnet.layers[0].conv1)
         save_layer(f, model.upsample.up_layers[1])  #2d convolution
-
+        save_layer(f, model.upsample.resnet.layers[0].batch_norm1)
     print()
