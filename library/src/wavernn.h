@@ -120,18 +120,20 @@ class BatchNorm1dLayer : public TorchLayer{
     struct alignas(1) Header{
         char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         int inChannels;
+        float eps;
     };
 
     Vectorf weight;
     Vectorf bias;
     Vectorf running_mean;
     Vectorf running_var;
+    float eps;
 
 public:
     //call TorchLayer loadNext, not derived loadNext
     BatchNorm1dLayer* loadNext( FILE* fd );
 
-    Vectorf apply( const Vectorf& x ) override;
+    Matrixf apply(const Matrixf &x ) override;
 };
 
 

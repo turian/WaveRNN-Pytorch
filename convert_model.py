@@ -78,6 +78,17 @@ def conv2d_saver(f, layer):
 
 def batchnorm1d_saver(f, layer):
 
+    v = struct.pack('@bif', elSize, layer.num_features, layer.eps)
+    f.write(v)
+    weight=layer.weight.detach().numpy()
+    bias=layer.bias.detach().numpy()
+    running_mean = layer.running_mean.detach().numpy()
+    running_var = layer.running_var.detach().numpy()
+
+    f.write(weight.tobytes(order='C'))
+    f.write(bias.tobytes(order='C'))
+    f.write(running_mean.tobytes(order='C'))
+    f.write(running_var.tobytes(order='C'))
 
     return
 
@@ -227,18 +238,22 @@ def torch_test_batchnorm1d( model, checkpoint ):
     layer = model.upsample.resnet.layers[0].batch_norm1
     x=np.matmul((1.+1./np.arange(1,129))[:,np.newaxis], (-3 + 2./np.arange(1,11))[np.newaxis,:])
     xt=torch.tensor(x[np.newaxis,:,:],dtype=torch.float32)
-    layer.track_running_stats=True
-    layer.training = False
 
     weight=layer.weight.detach().numpy()
     bias=layer.bias.detach().numpy()
     running_mean = layer.running_mean.detach().numpy()
     running_var = layer.running_var.detach().numpy()
+
     x1=xt.detach().numpy().squeeze()
+
+    mean = np.mean(x1, axis=0)
+    var = np.var(x1, axis=0)
     eps = layer.eps
-    y = ((x1[:,1]-running_mean)/(np.sqrt(running_var+eps)))*weight+bias
+    y = ((x1[:,0]-running_mean)/(np.sqrt(running_var+eps)))*weight+bias
+    #y = ((x1[:,0]-mean[0])/(np.sqrt(var[0]+eps)))*weight+bias
 
     c = layer(xt)
+
 
     return
 
