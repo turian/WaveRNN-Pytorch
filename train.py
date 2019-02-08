@@ -206,12 +206,15 @@ def load_checkpoint(path, model, optimizer, reset_optimizer):
 
     print("Load checkpoint from: {}".format(path))
     checkpoint = _load(path)
-    model.load_state_dict(checkpoint["state_dict"])
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
     if not reset_optimizer:
         optimizer_state = checkpoint["optimizer"]
         if optimizer_state is not None:
             print("Load optimizer state from {}".format(path))
-            optimizer.load_state_dict(checkpoint["optimizer"])
+            try:
+                optimizer.load_state_dict(checkpoint["optimizer"])
+            except Exception as e:
+                print(e)
     global_step = checkpoint["global_step"]
     global_epoch = checkpoint["global_epoch"]
     global_test_step = checkpoint.get("global_test_step", 0)
@@ -423,7 +426,7 @@ if __name__ == "__main__":
     if checkpoint_path is None:
         print("no checkpoint specified as --checkpoint argument, creating new model...")
     else:
-        model = load_checkpoint(checkpoint_path, model, optimizer, False)
+        model = load_checkpoint(checkpoint_path, model, optimizer, True) #ei False
         print("loading model from checkpoint:{}".format(checkpoint_path))
         # set global_test_step to True so we don't evaluate right when we load in the model
         global_test_step = True

@@ -49,7 +49,7 @@ hparams = tf.contrib.training.HParams(
     # note upsample factors must multiply out to be equal to hop_size, so adjust
     # if necessary (i.e 4 x 5 x 10 = 200)
     upsample_factors=(4, 5, 10),
-    compute_dims=128,
+    compute_dims=64,
     res_out_dims=32*2, #aux output is fed into 3 downstream nets
     res_blocks=3,
     # ----------------
