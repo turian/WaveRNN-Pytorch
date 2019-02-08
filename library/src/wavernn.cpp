@@ -262,10 +262,32 @@ Matrixf Conv2dLayer::apply(const Matrixf &x)
 
 BatchNorm1dLayer *BatchNorm1dLayer::loadNext(FILE *fd)
 {
+    BatchNorm1dLayer::Header header;
+    fread( &header, sizeof( BatchNorm1dLayer::Header), 1, fd);
+    assert(header.elSize==4 or header.elSize==2);
+
+    eps = header.eps;
+    weight.resize( header.inChannels );
+    bias.resize( header.inChannels );
+    running_mean.resize( header.inChannels );
+    running_var.resize( header.inChannels );
+
+    fread(weight.data(), header.elSize, header.inChannels, fd);
+    fread(bias.data(), header.elSize, header.inChannels, fd);
+    fread(running_mean.data(), header.elSize, header.inChannels, fd);
+    fread(running_var.data(), header.elSize, header.inChannels, fd);
+
     return this;
 }
 
-Vectorf BatchNorm1dLayer::apply(const Vectorf &x)
+Matrixf BatchNorm1dLayer::apply(const Matrixf &x)
 {
-    assert(0);
+    Matrixf y(x.rows(), x.cols());
+
+    //y = ((x1[:,0]-running_mean)/(np.sqrt(running_var+eps)))*weight+bias
+
+    Vectorf invstd = Eigen::rsqrt(running_var.array() + eps);
+    Matrixf r1 = (x.colwise() - running_mean.transpose());
+    y = ((r1.array().colwise()*invstd.transpose().array()).colwise()*weight.transpose().array()).colwise() + bias.transpose().array();
+    return y;
 }

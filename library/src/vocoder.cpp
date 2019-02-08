@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
     TorchLayer conv_in; conv_in.loadNext(fd);
     TorchLayer conv_1; conv_1.loadNext(fd);
     TorchLayer conv_2d; conv_2d.loadNext(fd);
+    TorchLayer batch_norm; batch_norm.loadNext(fd);
 
 // Test for linear layer
 //    Vectorf x(112);
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
 
 //    Vectorf h1 = GRU(x, hx);
 
-    Matrixf mel(80,20);
+    Matrixf mel(128,10);
     for(int i=0; i<mel.rows(); ++i){
         for(int j=0; j<mel.cols(); ++j){
             mel(i,j) = (1.+1./(i+1))*(-3.+2./(j+1));
@@ -64,7 +65,8 @@ int main(int argc, char* argv[])
     }
 
     //Matrixf aux = conv_in(mel);
-    Matrixf cv2 = conv_2d(mel);
+    //Matrixf cv2 = conv_2d(mel);
+    Matrixf batchnorm = batch_norm(mel);
 
     fclose(fd);
     return 0;
