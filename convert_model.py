@@ -276,7 +276,7 @@ if __name__ == "__main__":
     # torch_test_conv1d(model, checkpoint)
     # torch_test_conv1d_1x(model, checkpoint)
     # torch_test_conv2d(model, checkpoint)
-    torch_test_batchnorm1d(model, checkpoint)
+    # torch_test_batchnorm1d(model, checkpoint)
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)

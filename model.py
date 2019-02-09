@@ -113,8 +113,8 @@ class Model(nn.Module) :
     
     def forward(self, x, mels) :
         bsize = x.size(0)
-        h1 = torch.zeros(1, bsize, self.rnn_dims).cuda()
-        h2 = torch.zeros(1, bsize, self.rnn_dims).cuda()
+        h1 = torch.zeros(1, bsize, self.rnn_dims)
+        h2 = torch.zeros(1, bsize, self.rnn_dims)
         mels, aux = self.upsample(mels)
         
         aux_idx = [self.aux_dims * i for i in range(3)]
@@ -153,11 +153,11 @@ class Model(nn.Module) :
     #     rnn2 = self.get_gru_cell(self.rnn2)
     #
     #     with torch.no_grad() :
-    #         x = torch.zeros(1, 1).cuda()
-    #         h1 = torch.zeros(1, self.rnn_dims).cuda()
-    #         h2 = torch.zeros(1, self.rnn_dims).cuda()
+    #         x = torch.zeros(1, 1)
+    #         h1 = torch.zeros(1, self.rnn_dims)
+    #         h2 = torch.zeros(1, self.rnn_dims)
     #
-    #         mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
+    #         mels = torch.FloatTensor(mels).unsqueeze(0)
     #         mels, aux = self.upsample(mels)
     #
     #         aux_idx = [self.aux_dims * i for i in range(5)]
@@ -207,7 +207,7 @@ class Model(nn.Module) :
     #                 distrib = torch.distributions.Categorical(posterior)
     #                 sample = inv_mulaw_quantize(distrib.sample(), hp.mulaw_quantize_channels, True)
     #             output.append(sample.view(-1))
-    #             x = torch.FloatTensor([[sample]]).cuda()
+    #             x = torch.FloatTensor([[sample]])
     #     output = torch.stack(output).cpu().numpy()
     #     self.train()
     #     return output
@@ -218,7 +218,7 @@ class Model(nn.Module) :
         # i.e., it won't generalise to other shapes/dims
         b, t, c = x.size()
         total = t + 2 * pad if side == 'both' else t + pad
-        padded = torch.zeros(b, total, c).cuda()
+        padded = torch.zeros(b, total, c)
         if side == 'before' or side == 'both' :
             padded[:, pad:pad+t, :] = x
         elif side == 'after':
@@ -265,7 +265,7 @@ class Model(nn.Module) :
             padding = target + 2 * overlap - remaining
             x = self.pad_tensor(x, padding, side='after')
 
-        folded = torch.zeros(num_folds, target + 2 * overlap, features).cuda()
+        folded = torch.zeros(num_folds, target + 2 * overlap, features)
 
         # Get the values for the folded tensor
         for i in range(num_folds) :
@@ -348,7 +348,7 @@ class Model(nn.Module) :
         rnn1 = self.get_gru_cell(self.rnn1)
 
         with torch.no_grad():
-            mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
+            mels = torch.FloatTensor(mels).unsqueeze(0)
             mels = self.pad_tensor(mels.transpose(1, 2), pad=hp.pad, side='both')
             mels, aux = self.upsample(mels.transpose(1, 2))
 
@@ -358,9 +358,9 @@ class Model(nn.Module) :
 
             b_size, seq_len, _ = mels.size()
 
-            h1 = torch.zeros(b_size, self.rnn_dims).cuda()
-            h2 = torch.zeros(b_size, self.rnn_dims).cuda()
-            x = torch.zeros(b_size, 1).cuda()
+            h1 = torch.zeros(b_size, self.rnn_dims)
+            h2 = torch.zeros(b_size, self.rnn_dims)
+            x = torch.zeros(b_size, 1)
 
             d = self.aux_dims
             aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(2)]
@@ -409,11 +409,11 @@ class Model(nn.Module) :
         assert len(mels.shape) == 3, "mels should have shape [batch_size x 80 x mel_length]"
         
         with torch.no_grad() :
-            x = torch.zeros(b_size, 1).cuda()
-            h1 = torch.zeros(b_size, self.rnn_dims).cuda()
-            h2 = torch.zeros(b_size, self.rnn_dims).cuda()
+            x = torch.zeros(b_size, 1)
+            h1 = torch.zeros(b_size, self.rnn_dims)
+            h2 = torch.zeros(b_size, self.rnn_dims)
             
-            mels = torch.FloatTensor(mels).cuda()
+            mels = torch.FloatTensor(mels)
             mels, aux = self.upsample(mels)
             
             aux_idx = [self.aux_dims * i for i in range(3)]
@@ -494,14 +494,14 @@ def build_model():
 def no_test_build_model():
     model = Model(hp.rnn_dims, hp.fc_dims, hp.bits,
         hp.pad, hp.upsample_factors, hp.num_mels,
-        hp.compute_dims, hp.res_out_dims, hp.res_blocks).cuda()
+        hp.compute_dims, hp.res_out_dims, hp.res_blocks)
     print(vars(model))
 
 
 def test_batch_generate():
     model = Model(hp.rnn_dims, hp.fc_dims, hp.bits,
         hp.pad, hp.upsample_factors, hp.num_mels,
-        hp.compute_dims, hp.res_out_dims, hp.res_blocks).cuda()
+        hp.compute_dims, hp.res_out_dims, hp.res_blocks)
     print(vars(model))
     batch_mel = torch.rand(3, 80, 100)
     output = model.batch_generate(batch_mel)

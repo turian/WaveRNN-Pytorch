@@ -17,6 +17,8 @@ typedef Matrix<float, 1, Dynamic> Vectorf;
 typedef Matrix<uint8_t, 1, Dynamic> Vectori8;
 
 
+Matrixf relu( const Matrixf& x);
+
 class CompMatrix{
     Vectorf weight;
     Vectori8 index;
@@ -51,13 +53,15 @@ public:
     virtual Matrixf apply( const Matrixf& x){assert(0); return Matrixf();};
     virtual Vectorf apply( const Vectorf& x){assert(0); return Vectorf();};
     virtual Vectorf apply( const Vectorf& x, const Vectorf& h){assert(0); return Vectorf();};
+    virtual std::vector<int> shape(void) const { return std::vector<int>(); }
+
 };
 
 //TODO: This should be turned into a proper class factory pattern
 class TorchLayer : public BaseLayer {
     struct alignas(1) Header{
         //int size; //size of data blob, not including this header
-        enum class LayerType : char { Conv1d=1, Conv2d=2, BatchNorm1d=3, Linear=4, GRU=5 } layerType;
+        enum class LayerType : char { Conv1d=1, Conv2d=2, BatchNorm1d=3, Linear=4, GRU=5, Stretch2d=6, Relu=7 } layerType;
         char name[64]; //layer name for debugging
     };
 
@@ -66,17 +70,15 @@ class TorchLayer : public BaseLayer {
 public:
     BaseLayer* loadNext( FILE* fd );
 
-    template< typename T> T operator()( const T& x){
-        return impl->apply( x );
-    }
+    template< typename T> T operator()( const T& x){ return impl->apply( x ); }
     template< typename T, typename T2> T operator()( const T& x, const T2& h ){ return impl->apply( x, h );}
+    virtual std::vector<int> shape( void ) const override { return impl->shape(); }
 
     virtual ~TorchLayer(){
         delete impl;
         impl=nullptr;
     }
 };
-
 
 class Conv1dLayer : public TorchLayer{
     struct alignas(1) Header{
@@ -99,6 +101,7 @@ public:
     //call TorchLayer loadNext, not derived loadNext
     Conv1dLayer* loadNext( FILE* fd );
     Matrixf apply( const Matrixf& x ) override;
+    virtual std::vector<int> shape( void ) const override { return std::vector<int>({inChannels, outChannels, nKernel}); }
 };
 
 class Conv2dLayer : public TorchLayer{
@@ -108,12 +111,14 @@ class Conv2dLayer : public TorchLayer{
     };
 
     Vectorf weight;
+    int nKernel;
 
 public:
     Conv2dLayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     Conv2dLayer* loadNext( FILE* fd );
     Matrixf apply( const Matrixf& x ) override;
+    virtual std::vector<int> shape(void) const override { return std::vector<int>({nKernel}); }
 };
 
 class BatchNorm1dLayer : public TorchLayer{
@@ -128,12 +133,14 @@ class BatchNorm1dLayer : public TorchLayer{
     Vectorf running_mean;
     Vectorf running_var;
     float eps;
+    int nChannels;
 
 public:
     //call TorchLayer loadNext, not derived loadNext
     BatchNorm1dLayer* loadNext( FILE* fd );
 
     Matrixf apply(const Matrixf &x ) override;
+    virtual std::vector<int> shape(void) const override { return std::vector<int>({nChannels}); }
 };
 
 
@@ -155,6 +162,7 @@ public:
     //call TorchLayer loadNext, not derived loadNext
     LinearLayer* loadNext( FILE* fd );
     Vectorf apply( const Vectorf& x ) override;
+    virtual std::vector<int> shape(void) const override { return std::vector<int>({nRows, nCols}); }
 };
 
 
@@ -172,12 +180,12 @@ class GRULayer : public TorchLayer{
     int nRows;
     int nCols;
 
-
 public:
     GRULayer() = default;
     //call TorchLayer loadNext, not derived loadNext
     GRULayer* loadNext( FILE* fd );
     Vectorf apply( const Vectorf& x, const Vectorf& hx ) override;
+    virtual std::vector<int> shape(void) const override { return std::vector<int>({nRows, nCols}); }
 };
 
 

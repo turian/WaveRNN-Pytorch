@@ -12,6 +12,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <cmath>
 #include "wavernn.h"
 
+Matrixf relu( const Matrixf& x){
+    assert(0);
+    return x;
+}
+
 inline Vectorf sigmoid( const Vectorf& v )
 {
     //TODO: optimize this
@@ -235,9 +240,10 @@ Conv2dLayer *Conv2dLayer::loadNext(FILE *fd)
     Conv2dLayer::Header header;
     fread( &header, sizeof(Conv2dLayer::Header), 1, fd);
     assert(header.elSize==4 or header.elSize==2);
+    nKernel = header.nKernel;
 
-    weight.resize(header.nKernel);
-    fread(weight.data(), header.elSize, header.nKernel, fd);
+    weight.resize(nKernel);
+    fread(weight.data(), header.elSize, nKernel, fd);
     return this;
 }
 
@@ -267,6 +273,8 @@ BatchNorm1dLayer *BatchNorm1dLayer::loadNext(FILE *fd)
     assert(header.elSize==4 or header.elSize==2);
 
     eps = header.eps;
+    nChannels = header.inChannels;
+
     weight.resize( header.inChannels );
     bias.resize( header.inChannels );
     running_mean.resize( header.inChannels );

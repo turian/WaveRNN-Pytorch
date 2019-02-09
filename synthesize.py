@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     #onnx export
     model.train(False)
-    wav = np.load('WaveRNN-Pytorch/checkpoint/test_0_wav.npy')
+    #wav = np.load('WaveRNN-Pytorch/checkpoint/test_0_wav.npy')
 
     #doesn't work torch.onnx.export(model, (torch.tensor(wav),torch.tensor(mel)), checkpoint_dir+'/wavernn.onnx', verbose=True, input_names=['mel_input'], output_names=['wav_output'])
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     mel0 = mel.copy()
     start = time.time()
-    output0 = model.generate(mel0, batched=True, target=2000, overlap=64)
+    output0 = model.generate(mel0, batched=False, target=2000, overlap=64)
     total_time = time.time() - start
     frag_time = len(output0) / hparams.sample_rate
     print("Generation time: {}. Sound time: {}, ratio: {}".format(total_time, frag_time, frag_time/total_time))
