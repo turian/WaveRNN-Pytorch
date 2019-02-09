@@ -61,7 +61,7 @@ public:
 class TorchLayer : public BaseLayer {
     struct alignas(1) Header{
         //int size; //size of data blob, not including this header
-        enum class LayerType : char { Conv1d=1, Conv2d=2, BatchNorm1d=3, Linear=4, GRU=5, Stretch2d=6, Relu=7 } layerType;
+        enum class LayerType : int { Conv1d=1, Conv2d=2, BatchNorm1d=3, Linear=4, GRU=5, Stretch2d=6 } layerType;
         char name[64]; //layer name for debugging
     };
 
@@ -82,8 +82,8 @@ public:
 
 class Conv1dLayer : public TorchLayer{
     struct alignas(1) Header{
-        char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
-        int8_t useBias;
+        int elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
+        int useBias;
         int inChannels;
         int outChannels;
         int kernelSize;
@@ -106,7 +106,7 @@ public:
 
 class Conv2dLayer : public TorchLayer{
     struct alignas(1) Header{
-        char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
+        int elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         int nKernel;  //kernel size. special case of conv2d used in WaveRNN
     };
 
@@ -123,7 +123,7 @@ public:
 
 class BatchNorm1dLayer : public TorchLayer{
     struct alignas(1) Header{
-        char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
+        int elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         int inChannels;
         float eps;
     };
@@ -146,7 +146,7 @@ public:
 
 class LinearLayer : public TorchLayer{
     struct alignas(1) Header{
-        char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
+        int elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         int nRows;
         int nCols;
     };
@@ -168,7 +168,7 @@ public:
 
 class GRULayer : public TorchLayer{
     struct alignas(1) Header{
-        char elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
+        int elSize;  //size of each entry in bytes: 4 for float, 2 for fp16.
         int nHidden;
         int nInput;
     };
@@ -186,6 +186,23 @@ public:
     GRULayer* loadNext( FILE* fd );
     Vectorf apply( const Vectorf& x, const Vectorf& hx ) override;
     virtual std::vector<int> shape(void) const override { return std::vector<int>({nRows, nCols}); }
+};
+
+class Stretch2dLayer : public TorchLayer{
+    struct alignas(1) Header{
+        int x_scale;
+        int y_scale;
+    };
+
+    int x_scale;
+    int y_scale;
+
+public:
+    Stretch2dLayer() = default;
+    //call TorchLayer loadNext, not derived loadNext
+    Stretch2dLayer* loadNext( FILE* fd );
+    Matrixf apply(const Matrixf &x ) override;
+    virtual std::vector<int> shape(void) const override { return std::vector<int>({0}); }
 };
 
 

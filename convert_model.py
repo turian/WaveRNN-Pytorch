@@ -9,7 +9,7 @@ options:
 
 from docopt import docopt
 from model import *
-from hparams import hparams
+from hparams import hparams as hp
 
 import struct
 import numpy as np
@@ -50,7 +50,7 @@ def linear_saver(f, layer):
 
     bias = layer.bias.cpu().detach().numpy()
     nrows, ncols = weight.shape
-    v = struct.pack('@bii', elSize, nrows, ncols)
+    v = struct.pack('@iii', elSize, nrows, ncols)
     f.write(v)
     writeCompressed(f, weight)
     f.write(bias.tobytes(order='C'))
@@ -58,7 +58,7 @@ def linear_saver(f, layer):
 def conv1d_saver(f, layer):
     weight = layer.weight.cpu().detach().numpy()
     out_channels, in_channels, nkernel = weight.shape
-    v = struct.pack('@b?iii', elSize, not(layer.bias is None), in_channels, out_channels, nkernel)
+    v = struct.pack('@iiiii', elSize, not(layer.bias is None), in_channels, out_channels, nkernel)
     f.write(v)
     f.write(weight.tobytes(order='C'))
     if not (layer.bias is None ):
@@ -72,14 +72,14 @@ def conv2d_saver(f, layer):
     weight = weight.squeeze()
     nkernel = weight.shape[0]
 
-    v = struct.pack('@bi', elSize, nkernel)
+    v = struct.pack('@ii', elSize, nkernel)
     f.write(v)
     f.write(weight.tobytes(order='C'))
     return
 
 def batchnorm1d_saver(f, layer):
 
-    v = struct.pack('@bif', elSize, layer.num_features, layer.eps)
+    v = struct.pack('@iif', elSize, layer.num_features, layer.eps)
     f.write(v)
     weight=layer.weight.detach().numpy()
     bias=layer.bias.detach().numpy()
@@ -106,7 +106,7 @@ def gru_saver(f, layer):
     b_hr,b_hz,b_hn=np.split(bias_hh_l0, 3)
 
     hidden_size, input_size = W_ir.shape
-    v = struct.pack('@bii', elSize, hidden_size, input_size)
+    v = struct.pack('@iii', elSize, hidden_size, input_size)
     f.write(v)
     writeCompressed(f, W_ir)
     writeCompressed(f, W_iz)
@@ -122,16 +122,20 @@ def gru_saver(f, layer):
     f.write(b_hn.tobytes(order='C'))
     return
 
-savers = { 'Conv1d':conv1d_saver, 'Conv2d':conv2d_saver, 'BatchNorm1d':batchnorm1d_saver, 'Linear':linear_saver, 'GRU':gru_saver }
-layer_enum = { 'Conv1d':1, 'Conv2d':2, 'BatchNorm1d':3, 'Linear':4, 'GRU':5 }
+def stretch2d_saver(f, layer):
+    v = struct.pack('@ii', layer.x_scale, layer.y_scale)
+    f.write(v)
+    return
+
+savers = { 'Conv1d':conv1d_saver, 'Conv2d':conv2d_saver, 'BatchNorm1d':batchnorm1d_saver, 'Linear':linear_saver, 'GRU':gru_saver, 'Stretch2d':stretch2d_saver }
+layer_enum = { 'Conv1d':1, 'Conv2d':2, 'BatchNorm1d':3, 'Linear':4, 'GRU':5, 'Stretch2d':6 }
 
 def save_layer(f, layer):
     layer_type_name = layer._get_name()
-    v = struct.pack('@b64s', layer_enum[layer_type_name], layer.__str__().encode() )
+    v = struct.pack('@i64s', layer_enum[layer_type_name], layer.__str__().encode() )
     f.write(v)
     savers[layer_type_name](f, layer)
     return
-
 
 def torch_test_gru(model, checkpoint):
     x = 1.+1./np.arange(1,513)
@@ -254,8 +258,37 @@ def torch_test_batchnorm1d( model, checkpoint ):
     #y = ((x1[:,0]-mean[0])/(np.sqrt(var[0]+eps)))*weight+bias
 
     c = layer(xt)
+    return
 
+def save_resnet_block(f, layers):
+    for l in layers:
+        save_layer(f, l.conv1)
+        save_layer(f, l.batch_norm1)
+        save_layer(f, l.conv2)
+        save_layer(f, l.batch_norm2)
 
+def save_resnet( f, model ):
+    try:
+        model.upsample.resnet = model.upsample.resnet1  #temp hack
+    except: pass
+
+    save_layer(f, model.upsample.resnet.conv_in)
+    save_layer(f, model.upsample.resnet.batch_norm)
+    save_resnet_block( f, model.upsample.resnet.layers )  #save the resblock stack
+    save_layer(f, model.upsample.resnet.conv_out)
+    save_layer(f, model.upsample.resnet_stretch)
+    return
+
+def save_upsample(f, model):
+    for l in model.upsample.up_layers:
+        save_layer(f, l)
+    return
+
+def save_main(f, model):
+    save_layer(f, model.I)
+    save_layer(f, model.rnn1)
+    save_layer(f, model.fc1)
+    save_layer(f, model.fc2)
     return
 
 if __name__ == "__main__":
@@ -287,10 +320,15 @@ if __name__ == "__main__":
         f.write(mel.tobytes(order='C'))
 
     with open(output_path+'/model.bin','wb') as f:
-        save_layer(f, model.I)
-        save_layer(f, model.rnn1)
-        save_layer(f, model.upsample.resnet.conv_in)
-        save_layer(f, model.upsample.resnet.layers[0].conv1)
-        save_layer(f, model.upsample.up_layers[1])  #2d convolution
-        save_layer(f, model.upsample.resnet.layers[0].batch_norm1)
+        v = struct.pack('@iii', hp.res_blocks, len(hp.upsample_factors), hp.pad)
+        f.write(v)
+        save_resnet(f, model)
+        save_upsample(f, model)
+        save_main(f, model)
+        # save_layer(f, model.I)
+        # save_layer(f, model.rnn1)
+        # save_layer(f, model.upsample.resnet.conv_in)
+        # save_layer(f, model.upsample.resnet.layers[0].conv1)
+        # save_layer(f, model.upsample.up_layers[1])  #2d convolution
+        # save_layer(f, model.upsample.resnet.layers[0].batch_norm1)
     print()

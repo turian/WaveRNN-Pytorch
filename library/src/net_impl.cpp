@@ -15,8 +15,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 void ResBlock::loadNext(FILE *fd)
 {
-    resblock.resize( RES_BLOCKS*5 );
-    for(int i=0; i<RES_BLOCKS*5; ++i){
+    resblock.resize( RES_BLOCKS*4 );
+    for(int i=0; i<RES_BLOCKS*4; ++i){
         resblock[i].loadNext(fd);
     }
 }
@@ -27,9 +27,13 @@ Matrixf ResBlock::apply(const Matrixf &x)
 
     for(int i=0; i<RES_BLOCKS; ++i){
         Matrixf residual = y;
-        for(int j=0; j<5; ++j){
-            y = resblock[i](y);
-        }
+
+        y = resblock[4*i](y);    //conv1
+        y = resblock[4*i+1](y);  //batch_norm1
+        y = relu(y);
+        y = resblock[4*i+2](y);  //conv2
+        y = resblock[4*i+3](y);  //batch_norm2
+
         y += residual;
     }
     return y;
@@ -79,6 +83,7 @@ void Model::loadNext(FILE *fd)
 
     resnet.loadNext(fd);
     upsample.loadNext(fd);
+
     I.loadNext(fd);
     rnn1.loadNext(fd);
     fc1.loadNext(fd);

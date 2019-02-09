@@ -9,6 +9,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 #include <stdio.h>
+#include <iostream>
 #include <cmath>
 #include "wavernn.h"
 
@@ -38,7 +39,7 @@ BaseLayer *TorchLayer::loadNext(FILE *fd)
     TorchLayer::Header header;
     fread(&header, sizeof(TorchLayer::Header), 1, fd);
 
-    printf("Loading: %s\n", header.name);
+    std::cerr << "Loading:" << header.name << std::endl;
 
     switch( header.layerType ){
 
@@ -75,6 +76,13 @@ BaseLayer *TorchLayer::loadNext(FILE *fd)
         impl->loadNext(fd);
         return impl;
     }
+    case TorchLayer::Header::LayerType::Stretch2d:
+    {
+        impl = new Stretch2dLayer();
+        impl->loadNext(fd);
+        return impl;
+    }
+
     default:
         return nullptr;
     }
@@ -298,5 +306,21 @@ Matrixf BatchNorm1dLayer::apply(const Matrixf &x)
     Vectorf invstd = Eigen::rsqrt(running_var.array() + eps);
     Matrixf r1 = (x.colwise() - running_mean.transpose());
     y = ((r1.array().colwise()*invstd.transpose().array()).colwise()*weight.transpose().array()).colwise() + bias.transpose().array();
+    return y;
+}
+
+Stretch2dLayer *Stretch2dLayer::loadNext(FILE *fd)
+{
+    Stretch2dLayer::Header header;
+    fread( &header, sizeof(Stretch2dLayer::Header), 1, fd);
+    x_scale = header.x_scale;
+    y_scale = header.y_scale;
+}
+
+Matrixf Stretch2dLayer::apply(const Matrixf &x)
+{
+    Matrixf y(x.rows()*y_scale, x.cols()*x_scale);
+
+    assert(0);
     return y;
 }
