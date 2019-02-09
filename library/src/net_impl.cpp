@@ -75,6 +75,8 @@ Matrixf UpsampleNetwork::apply(const Matrixf &x)
 
 void Model::loadNext(FILE *fd)
 {
+    fread( &header, sizeof( Model::Header ), 1, fd);
+
     resnet.loadNext(fd);
     upsample.loadNext(fd);
     I.loadNext(fd);
@@ -91,17 +93,21 @@ Vectorf Model::apply(const Matrixf &x)
 
     Vectorf h1(rnn_shape[0]);
 
-    Matrixf mels = upsample.apply(x);
-    Matrixf aux = resnet.apply(x);
+    Matrixf mels = upsample.apply(x.transpose());
+    Matrixf aux = resnet.apply(x.transpose());
 
     assert(mels.cols() == aux.cols());
 
-    int seq_len = mels.cols();
+    //TODO: add padding here
+    int seq_len = mels.rows();
+    int n_aux = aux.rows();
+
 
     for(int i=0; i<seq_len; ++i){
 
     }
 
+    return y;
 }
 
 

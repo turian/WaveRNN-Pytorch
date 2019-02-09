@@ -9,6 +9,7 @@ options:
 
 from docopt import docopt
 from model import *
+from hparams import hparams
 
 import struct
 import numpy as np
@@ -277,6 +278,13 @@ if __name__ == "__main__":
     # torch_test_conv1d_1x(model, checkpoint)
     # torch_test_conv2d(model, checkpoint)
     # torch_test_batchnorm1d(model, checkpoint)
+
+    mel = np.load('checkpoint/test_0_mel.npy')
+    mel = mel.T.astype('float32')
+    v = struct.pack('@ii', mel.shape[0], mel.shape[1])
+    with open(output_path+'/mel.bin', 'wb') as f:
+        f.write(v)
+        f.write(mel.tobytes(order='C'))
 
     with open(output_path+'/model.bin','wb') as f:
         save_layer(f, model.I)

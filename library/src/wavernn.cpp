@@ -12,9 +12,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <cmath>
 #include "wavernn.h"
 
+
 Matrixf relu( const Matrixf& x){
-    assert(0);
-    return x;
+    return x.array().max(0.f);
+    //return x.unaryExpr([](float x){return std::max(0.f, x);});
 }
 
 inline Vectorf sigmoid( const Vectorf& v )

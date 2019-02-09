@@ -39,6 +39,15 @@ public:
 };
 
 class Model{
+
+    struct alignas(1) Header{
+        int num_res_blocks;
+        int num_upsample;
+        int nPad;
+    };
+
+    Header header;
+
     UpsampleNetwork upsample;
     Resnet resnet;
     TorchLayer I;

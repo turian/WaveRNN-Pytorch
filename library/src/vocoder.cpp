@@ -13,9 +13,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "cxxopts.hpp"
 
 #include "vocoder.h"
+#include "net_impl.h"
 #include "wavernn.h"
 
 using namespace std;
+
+Matrixf loadMel( FILE *fd )
+{
+    struct alignas(1) Header{
+        int nRows, nCols;
+    } header;
+    fread( &header, sizeof( Header ), 1, fd);
+
+    Matrixf mel( header.nRows, header.nCols );
+    fread(mel.data(), sizeof(float), header.nRows*header.nCols, fd);
+
+    return mel;
+}
 
 int main(int argc, char* argv[])
 {
@@ -30,15 +44,30 @@ int main(int argc, char* argv[])
     string weights_file = result["weights"].as<string>();
     string mel_file = result["mel"].as<string>();
 
+    FILE *fdMel = fopen( mel_file.c_str(), "rb");
+    Matrixf mel = loadMel( fdMel );
+
+    for(int i=100; i<103; i++){
+        for(int j=10; j<12; j++)
+            std::cerr << mel(i,j);
+        std::cerr << "\n";
+    }
+    fflush(stdout);
+
     FILE *fd = fopen(weights_file.c_str(), "rb");
     assert(fd);
 
-    TorchLayer I;  I.loadNext(fd);
-    TorchLayer GRU; GRU.loadNext(fd);
-    TorchLayer conv_in; conv_in.loadNext(fd);
-    TorchLayer conv_1; conv_1.loadNext(fd);
-    TorchLayer conv_2d; conv_2d.loadNext(fd);
-    TorchLayer batch_norm; batch_norm.loadNext(fd);
+    Model model;
+    model.loadNext(fd);
+
+    Vectorf wav = model.apply(mel);
+
+//    TorchLayer I;  I.loadNext(fd);
+//    TorchLayer GRU; GRU.loadNext(fd);
+//    TorchLayer conv_in; conv_in.loadNext(fd);
+//    TorchLayer conv_1; conv_1.loadNext(fd);
+//    TorchLayer conv_2d; conv_2d.loadNext(fd);
+//    TorchLayer batch_norm; batch_norm.loadNext(fd);
 
 // Test for linear layer
 //    Vectorf x(112);
@@ -57,17 +86,19 @@ int main(int argc, char* argv[])
 
 //    Vectorf h1 = GRU(x, hx);
 
-    Matrixf mel(128,10);
-    for(int i=0; i<mel.rows(); ++i){
-        for(int j=0; j<mel.cols(); ++j){
-            mel(i,j) = (1.+1./(i+1))*(-3.+2./(j+1));
-        }
-    }
+//    Matrixf mel(128,10);
+//    for(int i=0; i<mel.rows(); ++i){
+//        for(int j=0; j<mel.cols(); ++j){
+//            mel(i,j) = (1.+1./(i+1))*(-3.+2./(j+1));
+//        }
+//    }
 
     //Matrixf aux = conv_in(mel);
     //Matrixf cv2 = conv_2d(mel);
-    Matrixf batchnorm = batch_norm(mel);
+//    Matrixf batchnorm = batch_norm(mel);
 
     fclose(fd);
+    fclose(fdMel);
+
     return 0;
 }
