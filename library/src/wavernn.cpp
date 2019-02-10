@@ -238,7 +238,7 @@ Matrixf Conv1dLayer::apply(const Matrixf &x)
 
     if( hasBias ){
         //add bias to every column
-        y.rowwise() += bias;
+        y.colwise() += bias.transpose();
     }
 
     return y;
@@ -321,6 +321,12 @@ Matrixf Stretch2dLayer::apply(const Matrixf &x)
 {
     Matrixf y(x.rows()*y_scale, x.cols()*x_scale);
 
-    assert(0);
+    assert(y_scale==1); //TODO: implement for 2d scaling
+    int scaled_col = 0;
+    for(int i=0; i<x.cols(); ++i){
+        for(int j=0; j<x_scale; ++j){
+            y.col(scaled_col++) = x.col(i);
+        }
+    }
     return y;
 }

@@ -350,6 +350,7 @@ class Model(nn.Module) :
         with torch.no_grad():
             mels = torch.FloatTensor(mels).unsqueeze(0)
             mels = self.pad_tensor(mels.transpose(1, 2), pad=hp.pad, side='both')
+
             mels, aux = self.upsample(mels.transpose(1, 2))
 
             if batched:

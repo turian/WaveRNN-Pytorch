@@ -90,6 +90,14 @@ void Model::loadNext(FILE *fd)
     fc2.loadNext(fd);
 }
 
+
+Matrixf pad( const Matrixf& x, int nPad )
+{
+    Matrixf y = Matrixf::Zero(x.rows(), x.cols()+2*nPad);
+    y.block(0, nPad, x.rows(), x.cols() ) = x;
+    return y;
+}
+
 Vectorf Model::apply(const Matrixf &x)
 {
     Vectorf y;
@@ -98,18 +106,17 @@ Vectorf Model::apply(const Matrixf &x)
 
     Vectorf h1(rnn_shape[0]);
 
-    Matrixf mels = upsample.apply(x.transpose());
-    Matrixf aux = resnet.apply(x.transpose());
+    Matrixf mel_padded = pad(x, header.nPad);
+
+    Matrixf mels = upsample.apply(mel_padded);
+    Matrixf aux = resnet.apply(mel_padded);
 
     assert(mels.cols() == aux.cols());
-
-    //TODO: add padding here
     int seq_len = mels.rows();
     int n_aux = aux.rows();
 
-
     for(int i=0; i<seq_len; ++i){
-
+        assert(0);
     }
 
     return y;

@@ -2,8 +2,8 @@
 #define WAVERNN_H
 
 #include <stdio.h>
+#include <vector>
 #include <Eigen/Dense>
-#include <unsupported/Eigen/CXX11/Tensor>
 
 using namespace Eigen;
 
@@ -11,8 +11,6 @@ const int SPARSE_GROUP_SIZE = 8; //When pruning we use groups of 8 to reduce ind
 const uint8_t ROW_END_MARKER = 255;
 
 typedef Matrix<float, Dynamic, Dynamic, RowMajor> Matrixf;
-typedef Tensor<float, 3, RowMajor> Tensor3df;
-typedef Tensor<float, 4, RowMajor> Tensor4df;
 typedef Matrix<float, 1, Dynamic> Vectorf;
 typedef Matrix<uint8_t, 1, Dynamic> Vectori8;
 
@@ -73,6 +71,10 @@ public:
     template< typename T> T operator()( const T& x){ return impl->apply( x ); }
     template< typename T, typename T2> T operator()( const T& x, const T2& h ){ return impl->apply( x, h );}
     virtual std::vector<int> shape( void ) const override { return impl->shape(); }
+
+    virtual Matrixf apply( const Matrixf& x) override { return impl->apply(x); };
+    virtual Vectorf apply( const Vectorf& x) override { return impl->apply(x); };
+    virtual Vectorf apply( const Vectorf& x, const Vectorf& h) override { return impl->apply(x); };
 
     virtual ~TorchLayer(){
         delete impl;

@@ -28,7 +28,7 @@ Matrixf loadMel( FILE *fd )
     Matrixf mel( header.nRows, header.nCols );
     fread(mel.data(), sizeof(float), header.nRows*header.nCols, fd);
 
-    return mel;
+    return mel.transpose();
 }
 
 int main(int argc, char* argv[])
@@ -47,12 +47,6 @@ int main(int argc, char* argv[])
     FILE *fdMel = fopen( mel_file.c_str(), "rb");
     Matrixf mel = loadMel( fdMel );
 
-    for(int i=100; i<103; i++){
-        for(int j=10; j<12; j++)
-            std::cerr << mel(i,j);
-        std::cerr << "\n";
-    }
-    fflush(stdout);
 
     FILE *fd = fopen(weights_file.c_str(), "rb");
     assert(fd);
