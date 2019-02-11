@@ -4,6 +4,7 @@ usage: convert_model.py [options] <checkpoint.pth>
 
 options:
     --output-dir=<dir>           Output Directory [default: model_outputs]
+    --mel=<file>                 Mel file input for testing.
     -h, --help                   Show this help message and exit
 """
 
@@ -295,6 +296,7 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     print("Command line args:\n", args)
     output_path = args["--output-dir"]
+    mel_file = args["--mel"]
 
     device = torch.device("cpu")
 
@@ -312,8 +314,8 @@ if __name__ == "__main__":
     # torch_test_conv2d(model, checkpoint)
     # torch_test_batchnorm1d(model, checkpoint)
 
-    mel = np.load('checkpoint/test_0_mel.npy')
-    mel = mel.T.astype('float32')
+    mel = np.load(mel_file)
+    mel = mel.astype('float32')
     v = struct.pack('@ii', mel.shape[0], mel.shape[1])
     with open(output_path+'/mel.bin', 'wb') as f:
         f.write(v)

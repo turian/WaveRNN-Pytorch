@@ -159,31 +159,25 @@ Vectorf GRULayer::apply(const Vectorf &x, const Vectorf &hx)
 
 Vectorf CompMatrix::operator*(const Vectorf &x)
 {
-    Vectorf y(nRows);
+    Vectorf y = Vectorf::Zero(nRows);
     assert(nCols == x.size());
 
     int indexPos = 0;
     int weightPos = 0;
     int row = 0;
-    float sum = 0;
 
     while( row < nRows ){
         int idxPos = index[indexPos++];
-        if( idxPos != ROW_END_MARKER ){
-            //TODO: vectorize this multiplication
+        if( idxPos == ROW_END_MARKER ){
+            ++row;
+        } else {
             int col = SPARSE_GROUP_SIZE*idxPos;
 
             assert( col+SPARSE_GROUP_SIZE <= x.size() );
             assert( weightPos+SPARSE_GROUP_SIZE <= weight.size());
 
-            for(int i=0; i<SPARSE_GROUP_SIZE; ++i)
-                sum += weight(weightPos++) * x(col+i);
-
-        } else { //end of row. assign output and continue to the next row.
-            assert( row < nRows );
-            y(row) = sum;
-            sum = 0.f;
-            ++row;
+            y(row) += (weight.segment<SPARSE_GROUP_SIZE>(weightPos)).dot(x.segment<SPARSE_GROUP_SIZE>(col));
+            weightPos += SPARSE_GROUP_SIZE;
         }
     }
     return y;

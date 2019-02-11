@@ -28,7 +28,7 @@ Matrixf loadMel( FILE *fd )
     Matrixf mel( header.nRows, header.nCols );
     fread(mel.data(), sizeof(float), header.nRows*header.nCols, fd);
 
-    return mel.transpose();
+    return mel;
 }
 
 int main(int argc, char* argv[])
@@ -55,6 +55,10 @@ int main(int argc, char* argv[])
     model.loadNext(fd);
 
     Vectorf wav = model.apply(mel);
+
+    FILE *fdout = fopen("wavout.bin","wb");
+    fwrite(wav.data(), sizeof(float), wav.size(), fdout);
+    fclose(fdout);
 
 //    TorchLayer I;  I.loadNext(fd);
 //    TorchLayer GRU; GRU.loadNext(fd);
