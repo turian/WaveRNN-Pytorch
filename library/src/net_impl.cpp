@@ -12,6 +12,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "wavernn.h"
 #include "net_impl.h"
 
+Vectorf softmax( const Vectorf& x )
+{
+    float maxVal = x.maxCoeff();
+    Vectorf y = x.array();
+
+    y = Eigen::exp(y.array());
+    float sum = y.sum();
+    return y.array() / sum;
+}
+
 
 void ResBlock::loadNext(FILE *fd)
 {
@@ -98,28 +108,61 @@ Matrixf pad( const Matrixf& x, int nPad )
     return y;
 }
 
-Vectorf Model::apply(const Matrixf &x)
+Vectorf vstack( const Vectorf& x1, const Vectorf& x2 )
 {
-    Vectorf y;
+    Vectorf temp(x1.size()+x2.size());
+    temp << x1, x2;
+    return temp;
+}
 
+Vectorf vstack( const Vectorf& x1, const Vectorf& x2, const Vectorf& x3 )
+{
+    return vstack( vstack( x1, x2), x3 );
+}
+
+Vectorf Model::apply(const Matrixf &mels_in)
+{
     std::vector<int> rnn_shape = rnn1.shape();
 
-    Vectorf h1(rnn_shape[0]);
-
-    Matrixf mel_padded = pad(x, header.nPad);
-
+    Matrixf mel_padded = pad(mels_in, header.nPad);
     Matrixf mels = upsample.apply(mel_padded);
+    int indent = header.nPad * header.total_scale;
+
+    mels = mels.block(0,indent, mels.rows(), mels.cols()-2*indent ).eval(); //remove padding added in the previous step
+
     Matrixf aux = resnet.apply(mel_padded);
 
     assert(mels.cols() == aux.cols());
-    int seq_len = mels.rows();
+    int seq_len = mels.cols();
     int n_aux = aux.rows();
 
+    Matrixf a1 = aux.block(0, 0, n_aux/2-1, aux.cols()); //we are throwing away the last aux row to keep network input a mulitple of 8.
+    Matrixf a2 = aux.block(n_aux/2, 0, n_aux/2, aux.cols());
+
+    Vectorf wav_out(seq_len);     //output vector
+
+    Vectorf x = Vectorf::Zero(1); //current sound amplitude
+
+    Vectorf h1 = Vectorf::Zero(rnn_shape[0]);
+
     for(int i=0; i<seq_len; ++i){
+        Vectorf y = vstack( x, mels.col(i), a1.col(i) );
+        y = I( y );
+        h1 = rnn1( y, h1 );
+        y = y + h1;
+
+        y = vstack( y, a2.col(i) );
+
+        y = relu( fc1( y ) );
+        Vectorf logits = fc2( y );
+        Vectorf posterior = softmax( logits );
+
         assert(0);
+        //Vectorf posterior = softmax( logits );
+
     }
 
-    return y;
+    return wav_out;
 }
 
 

@@ -320,7 +320,7 @@ if __name__ == "__main__":
         f.write(mel.tobytes(order='C'))
 
     with open(output_path+'/model.bin','wb') as f:
-        v = struct.pack('@iii', hp.res_blocks, len(hp.upsample_factors), hp.pad)
+        v = struct.pack('@iiii', hp.res_blocks, len(hp.upsample_factors), np.prod(hp.upsample_factors), hp.pad)
         f.write(v)
         save_resnet(f, model)
         save_upsample(f, model)

@@ -8,6 +8,8 @@
 const int RES_BLOCKS = 3;
 const int UPSAMPLE_LAYERS = 3;
 
+Vectorf softmax( const Vectorf& x );
+
 class ResBlock{
     std::vector<TorchLayer> resblock;
 public:
@@ -43,6 +45,7 @@ class Model{
     struct alignas(1) Header{
         int num_res_blocks;
         int num_upsample;
+        int total_scale;
         int nPad;
     };
 
