@@ -104,7 +104,7 @@ LinearLayer* LinearLayer::loadNext(FILE *fd)
 
 Vectorf LinearLayer::apply(const Vectorf &x)
 {
-    return (mat*x);
+    return (mat*x)+bias;
 }
 
 GRULayer* GRULayer::loadNext(FILE *fd)
