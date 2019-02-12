@@ -344,7 +344,6 @@ class Model(nn.Module) :
 
         self.eval()
         output = []
-        posterior_out = []
 
         rnn1 = self.get_gru_cell(self.rnn1)
 
@@ -387,13 +386,11 @@ class Model(nn.Module) :
                 distrib = torch.distributions.Categorical(posterior)
                 sample = 2 * distrib.sample().float() / (self.n_classes - 1.) - 1.
                 output.append(sample)
-                posterior_out.append(posterior[0,:])
+
                 x = sample.unsqueeze(-1)
 
         output = torch.stack(output).transpose(0, 1)
         output = output.cpu().numpy()
-
-        posterior_out = torch.stack(posterior_out).transpose(0,1).cpu().numpy()
 
         if batched:
             output = self.xfade_and_unfold(output, target, overlap)
@@ -401,7 +398,7 @@ class Model(nn.Module) :
             output = output[0]
 
         self.train()
-        return output, posterior_out
+        return output
 
     def batch_generate(self, mels) :
         """mel should be of shape [batch_size x 80 x mel_length]
