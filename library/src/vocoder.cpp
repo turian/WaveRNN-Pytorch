@@ -20,7 +20,7 @@ using namespace std;
 
 Matrixf loadMel( FILE *fd )
 {
-    struct alignas(1) Header{
+    struct Header{
         int nRows, nCols;
     } header;
     fread( &header, sizeof( Header ), 1, fd);

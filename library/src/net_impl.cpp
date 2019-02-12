@@ -123,22 +123,6 @@ Vectorf vstack( const Vectorf& x1, const Vectorf& x2, const Vectorf& x3 )
     return vstack( vstack( x1, x2), x3 );
 }
 
-//float sampleCategorical( const Vectorf& logits )
-//{
-//    //Sampling using Gumbel Max Trick
-//    //https://timvieira.github.io/blog/post/2014/07/31/gumbel-max-trick/
-//    static std::ranlux24 rnd;
-//    Vectorf uniform(logits.size());
-
-//    for(int i=0; i<logits.size(); ++i)
-//        uniform(i) = static_cast<float>(rnd()) / rnd.max();
-
-//    Vectorf::Index index;
-//    (logits - (-(uniform.array().log())).log().matrix()).maxCoeff(&index);
-
-//    return (2.*index) / (logits.size() - 1.) - 1.;
-//}
-
 float sampleCategorical( const VectorXf& probabilities )
 {
     //Sampling using this algorithm https://en.wikipedia.org/wiki/Categorical_distribution#Sampling

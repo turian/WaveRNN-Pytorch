@@ -162,23 +162,19 @@ Vectorf CompMatrix::operator*(const Vectorf &x)
     Vectorf y = Vectorf::Zero(nRows);
     assert(nCols == x.size());
 
-    int indexPos = 0;
     int weightPos = 0;
-    int row = 0;
 
-    while( row < nRows ){
-        int idxPos = index[indexPos++];
-        if( idxPos == ROW_END_MARKER ){
-            ++row;
-        } else {
-            int col = SPARSE_GROUP_SIZE*idxPos;
+    const float * __restrict x_ptr = x.data();
+    float * __restrict y_ptr = y.data();
 
-            assert( col+SPARSE_GROUP_SIZE <= x.size() );
-            assert( weightPos+SPARSE_GROUP_SIZE <= weight.size());
-
-            y(row) += (weight.segment<SPARSE_GROUP_SIZE>(weightPos)).dot(x.segment<SPARSE_GROUP_SIZE>(col));
-            weightPos += SPARSE_GROUP_SIZE;
+    for(int i=0; i<nGroups; ++i){
+        float sum = 0;
+        int col = SPARSE_GROUP_SIZE*colIdx[i];
+        //scalar product loop. compiler should optimize it.
+        for(int k=0; k<SPARSE_GROUP_SIZE; ++k){
+            sum += weight[weightPos++]*x_ptr[col++];
         }
+        y_ptr[rowIdx[i]] += sum;
     }
     return y;
 }
