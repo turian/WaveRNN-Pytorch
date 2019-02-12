@@ -10,6 +10,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdio.h>
 #include <vector>
 #include <random>
+#include <numeric>
+
 #include "wavernn.h"
 #include "net_impl.h"
 
@@ -121,20 +123,33 @@ Vectorf vstack( const Vectorf& x1, const Vectorf& x2, const Vectorf& x3 )
     return vstack( vstack( x1, x2), x3 );
 }
 
-float sampleCategorical( const Vectorf& logits )
+//float sampleCategorical( const Vectorf& logits )
+//{
+//    //Sampling using Gumbel Max Trick
+//    //https://timvieira.github.io/blog/post/2014/07/31/gumbel-max-trick/
+//    static std::ranlux24 rnd;
+//    Vectorf uniform(logits.size());
+
+//    for(int i=0; i<logits.size(); ++i)
+//        uniform(i) = static_cast<float>(rnd()) / rnd.max();
+
+//    Vectorf::Index index;
+//    (logits - (-(uniform.array().log())).log().matrix()).maxCoeff(&index);
+
+//    return (2.*index) / (logits.size() - 1.) - 1.;
+//}
+
+float sampleCategorical( const VectorXf& probabilities )
 {
-    //Sampling using Gumbel Max Trick
-    //https://timvieira.github.io/blog/post/2014/07/31/gumbel-max-trick/
+    //Sampling using this algorithm https://en.wikipedia.org/wiki/Categorical_distribution#Sampling
     static std::ranlux24 rnd;
-    Vectorf uniform(logits.size());
+    std::vector<float> cdf(probabilities.size());
+    float uniform_random = static_cast<float>(rnd()) / rnd.max();
 
-    for(int i=0; i<logits.size(); ++i)
-        uniform(i) = static_cast<float>(rnd()) / rnd.max();
-
-    Vectorf::Index index;
-    (logits - (-(uniform.array().log())).log().matrix()).maxCoeff(&index);
-
-    return (2.*index) / (logits.size() - 1.) - 1.;
+    std::partial_sum(probabilities.data(), probabilities.data()+probabilities.size(), cdf.begin());
+    auto it = std::find_if(cdf.cbegin(), cdf.cend(), [uniform_random](float x){ return (x >= uniform_random);});
+    int pos = std::distance(cdf.cbegin(), it);
+    return (2.*pos) / (probabilities.size()-1.) - 1.;
 }
 
 Vectorf Model::apply(const Matrixf &mels_in)
@@ -172,8 +187,10 @@ Vectorf Model::apply(const Matrixf &mels_in)
 
         y = relu( fc1( y ) );
         Vectorf logits = fc2( y );
+        Vectorf posterior = softmax( logits );
 
-        float newAmplitude = sampleCategorical( logits );
+        float newAmplitude = sampleCategorical( posterior );
+
         wav_out(i) = x(0) = newAmplitude;
 
     }

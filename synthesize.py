@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     mel0 = mel.copy()
     start = time.time()
-    output0 = model.generate(mel0, batched=False, target=2000, overlap=64)
+    output0, posterior = model.generate(mel0, batched=False, target=2000, overlap=64)
     total_time = time.time() - start
     frag_time = len(output0) / hparams.sample_rate
     print("Generation time: {}. Sound time: {}, ratio: {}".format(total_time, frag_time, frag_time/total_time))
