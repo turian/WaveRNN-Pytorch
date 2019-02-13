@@ -18,12 +18,48 @@ typedef Matrix<uint8_t, 1, Dynamic> Vectori8;
 Matrixf relu( const Matrixf& x);
 
 class CompMatrix{
-    Vectorf weight;
-    Vectori8 index;
+    //Vectorf weight;
+    //Vectori8 index;
+    float __attribute__((aligned (32))) *weight;
+    int __attribute__((aligned (32))) *rowIdx;
+    int8_t __attribute__((aligned (32))) *colIdx; //colIdx gets multiplied by SPARSE_GROUP_SIZE to get the actual position
+    int nGroups;
+
     int nRows, nCols;
+
+    void prepData( std::vector<float>& wght, std::vector<uint8_t>& idx )
+    {
+        weight = static_cast<float*>(aligned_alloc(32, sizeof(float)*wght.size()));
+
+        nGroups = wght.size()/SPARSE_GROUP_SIZE;
+        rowIdx = static_cast<int*>(aligned_alloc(32, sizeof(int)*nGroups));
+        colIdx = static_cast<int8_t*>(aligned_alloc(32, sizeof(int8_t)*nGroups));
+
+        std::copy(wght.begin(), wght.end(), weight);
+
+        int row = 0;
+        int n = 0;
+
+        for(int i=0; i<idx.size(); ++i){
+            if( idx[i] == ROW_END_MARKER ){
+                row++;
+            } else {
+                assert(n < nGroups);
+                *(colIdx+n) = idx[i];
+                *(rowIdx+n) = row;
+                n++;
+            }
+        }
+        assert( n == nGroups );
+    };
 
 public:
     CompMatrix()=default;
+    ~CompMatrix(){
+        free(weight);
+        free(rowIdx);
+        free(colIdx);
+    }
 
     void read(FILE* fd, int elSize, int _nRows, int _nCols){
         int nWeights=0;
@@ -31,14 +67,15 @@ public:
         nRows = _nRows;
         nCols = _nCols;
 
-        fread(&nWeights, sizeof(int), 1, fd);
 
-        weight.resize(nWeights);
+        fread(&nWeights, sizeof(int), 1, fd);
+        std::vector<float> weight(nWeights);
         fread(weight.data(), elSize, nWeights, fd);
 
         fread(&nIndex, sizeof(int), 1, fd);
-        index.resize(nIndex);
-        fread(index.data(), sizeof(int8_t), nIndex, fd);
+        std::vector<uint8_t> index(nIndex);
+        fread(index.data(), sizeof(uint8_t), nIndex, fd);
+        prepData( weight, index );
     }
 
     Vectorf operator*( const Vectorf& x);

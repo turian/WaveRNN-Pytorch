@@ -20,7 +20,8 @@ using namespace std;
 
 Matrixf loadMel( FILE *fd )
 {
-    struct  Header{
+
+    struct Header{
         int nRows, nCols;
     } header;
     fread( &header, sizeof( Header ), 1, fd);
