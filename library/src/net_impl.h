@@ -42,7 +42,7 @@ public:
 
 class Model{
 
-    struct alignas(1) Header{
+    struct  Header{
         int num_res_blocks;
         int num_upsample;
         int total_scale;
