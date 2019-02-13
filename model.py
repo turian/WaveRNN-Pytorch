@@ -62,7 +62,7 @@ class UpsampleNetwork(nn.Module) :
         super().__init__()
         total_scale = np.cumproduct(upsample_scales)[-1]
         self.indent = pad * total_scale
-        self.resnet1 = MelResNet(res_blocks, feat_dims, compute_dims, res_out_dims)
+        self.resnet = MelResNet(res_blocks, feat_dims, compute_dims, res_out_dims)
         self.resnet_stretch = Stretch2d(total_scale, 1)
         self.up_layers = nn.ModuleList()
         for scale in upsample_scales :
@@ -75,7 +75,7 @@ class UpsampleNetwork(nn.Module) :
             self.up_layers.append(conv)
     
     def forward(self, m) :
-        aux = self.resnet1(m).unsqueeze(1)
+        aux = self.resnet(m).unsqueeze(1)
         aux = self.resnet_stretch(aux)
         aux = aux.squeeze(1)
         m = m.unsqueeze(1)
@@ -113,8 +113,8 @@ class Model(nn.Module) :
     
     def forward(self, x, mels) :
         bsize = x.size(0)
-        h1 = torch.zeros(1, bsize, self.rnn_dims)
-        h2 = torch.zeros(1, bsize, self.rnn_dims)
+        h1 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
+
         mels, aux = self.upsample(mels)
         
         aux_idx = [self.aux_dims * i for i in range(3)]
@@ -359,9 +359,9 @@ class Model(nn.Module) :
 
             b_size, seq_len, _ = mels.size()
 
-            h1 = torch.zeros(b_size, self.rnn_dims)
-            h2 = torch.zeros(b_size, self.rnn_dims)
-            x = torch.zeros(b_size, 1)
+            h1 = torch.zeros(b_size, self.rnn_dims).to(mels.device)
+
+            x = torch.zeros(b_size, 1).to(mels.device)
 
             d = self.aux_dims
             aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(2)]
@@ -411,13 +411,12 @@ class Model(nn.Module) :
         assert len(mels.shape) == 3, "mels should have shape [batch_size x 80 x mel_length]"
         
         with torch.no_grad() :
-            x = torch.zeros(b_size, 1)
-            h1 = torch.zeros(b_size, self.rnn_dims)
-            h2 = torch.zeros(b_size, self.rnn_dims)
-            
             mels = torch.FloatTensor(mels)
             mels, aux = self.upsample(mels)
-            
+
+            x = torch.zeros(b_size, 1).to(mels.device)
+            h1 = torch.zeros(b_size, self.rnn_dims).to(mels.device)
+
             aux_idx = [self.aux_dims * i for i in range(3)]
             a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
             a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
