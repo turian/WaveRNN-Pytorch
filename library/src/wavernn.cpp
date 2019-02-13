@@ -11,6 +11,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdio.h>
 #include <iostream>
 #include <cmath>
+#include <smmintrin.h>
+#include <xmmintrin.h>
+
 #include "wavernn.h"
 
 
@@ -164,17 +167,27 @@ Vectorf CompMatrix::operator*(const Vectorf &x)
 
     int weightPos = 0;
 
-    const float * __restrict x_ptr = x.data();
     float * __restrict y_ptr = y.data();
+    float * __restrict weightPtr = weight;
+    const float * __restrict x_data_ptr = x.data();
 
     for(int i=0; i<nGroups; ++i){
-        float sum = 0;
-        int col = SPARSE_GROUP_SIZE*colIdx[i];
+
+        const float* __restrict x_pos = x_data_ptr + SPARSE_GROUP_SIZE*colIdx[i];
+
         //scalar product loop. compiler should optimize it.
-        for(int k=0; k<SPARSE_GROUP_SIZE; ++k){
-            sum += weight[weightPos++]*x_ptr[col++];
-        }
-        y_ptr[rowIdx[i]] += sum;
+        __m128 w1 = _mm_load_ps( weightPtr );       //w1 first half of the weights
+        __m128 x1 = _mm_load_ps( x_pos );              //x1 first half of the vector
+        __m128 p1 = _mm_dp_ps( w1, x1, 0xf1 );
+
+        __m128 w2 = _mm_load_ps( weightPtr + 4 );   //w2 second half of the weights
+        __m128 x2 = _mm_load_ps( x_pos + 4 );          //x2 second half of the vector
+        __m128 p2 = _mm_dp_ps( w2, x2, 0xf1 );
+
+        __m128 s1 = _mm_add_ps( p1, p2 );
+
+        y_ptr[rowIdx[i]] += s1[0];
+        weightPtr += 8;
     }
     return y;
 }
