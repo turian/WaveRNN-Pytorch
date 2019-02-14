@@ -95,25 +95,29 @@ class PruneMask():
 
     def mask_from_matrix(self, W, z):
         # Split into gate matrices (or not)
-        W_split = torch.split(W, self.split_size)
+        if self.split_size>1:
+            W_split = torch.split(W, self.split_size)
+        else:
+            W_split = W
 
         M = []
         # Loop through splits
         for W in W_split:
             # Sort the magnitudes
-            N = W.shape[0]
-            W = torch.transpose(W, 1, 0)
+            N = W.shape[1]
+
             W_abs = torch.abs(W)
-            L = W_abs.reshape(-1, N // hp.sparse_group, hp.sparse_group)
-            S = L.sum(dim=-1)
+            L = W_abs.reshape(W.shape[0], N // hp.sparse_group, hp.sparse_group)
+            S = L.sum(dim=2)
             sorted_abs, _ = torch.sort(S.view(-1))
 
             # Pick k (num weights to zero)
-            k = int(W.size(0) * W.size(1) // hp.sparse_group * z)
+            k = int(W.shape[0] * W.shape[1] // hp.sparse_group * z)
             threshold = sorted_abs[k]
             mask = (S >= threshold).float()
-            mask = mask.repeat(1, hp.sparse_group)
-            mask = torch.transpose(mask, 1, 0)
+            mask = mask.unsqueeze(2).expand(-1,-1,hp.sparse_group)
+            mask = mask.reshape(W.shape[0], W.shape[1])
+
             # Create the mask
             M += [mask]
 
@@ -136,27 +140,29 @@ class Pruner(object):
         self.total_params = 0
         self.masks = []
         self.layers = layers
-        for layer in layers:
+        for (layer,z) in layers:
             self.masks += [PruneMask(layer, prune_rnn_input)]
         self.count_total_params()
 
-    def update_sparsity(self, t):
-        z = self.Z * (1 - (1 - (t - self.t_0) / self.S) ** 3)
-        self.z = clamp(z, 0, self.Z)
-        return
+    def update_sparsity(self, t, Z):
+        z = Z * (1 - (1 - (t - self.t_0) / self.S) ** 3)
+        z = clamp(z, 0, Z)
+        return z
 
     def prune(self, step):
-        self.update_sparsity(step)
-        for (l, m) in zip(self.layers, self.masks):
-            m.update_mask(l, self.z)
+
+        for ((l,z), m) in zip(self.layers, self.masks):
+            z_curr = self.update_sparsity(step, z)
+            m.update_mask(l, z_curr)
             m.apply_mask(l)
         return self.count_num_pruned()
 
     def restart(self, layers, step):
         # In case training is stopped
         self.update_sparsity(step)
-        for (l, m) in zip(layers, self.masks):
-            m.update_mask(l, self.z)
+        for ((l, z), m) in zip(layers, self.masks):
+            z_curr = self.update_sparsity(step, z)
+            m.update_mask(l, z_curr)
 
     def count_num_pruned(self):
         self.num_pruned = 0
@@ -200,12 +206,15 @@ def load_checkpoint(path, model, optimizer, reset_optimizer):
 
     print("Load checkpoint from: {}".format(path))
     checkpoint = _load(path)
-    model.load_state_dict(checkpoint["state_dict"])
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
     if not reset_optimizer:
         optimizer_state = checkpoint["optimizer"]
         if optimizer_state is not None:
             print("Load optimizer state from {}".format(path))
-            optimizer.load_state_dict(checkpoint["optimizer"])
+            try:
+                optimizer.load_state_dict(checkpoint["optimizer"])
+            except Exception as e:
+                print(e)
     global_step = checkpoint["global_step"]
     global_epoch = checkpoint["global_epoch"]
     global_test_step = checkpoint.get("global_test_step", 0)
@@ -285,7 +294,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [model.rnn1, model.rnn2]
+    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target)]
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
@@ -343,7 +352,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
 
 
 def test_prune(model):
-    layers = [model.rnn1, model.rnn2]
+    layers = [model.rnn1] #, model.rnn2]
     start_prune = 0
     prune_steps = 100  # 20000
     sparsity_target = 0.9375
@@ -394,10 +403,10 @@ if __name__ == "__main__":
     print("I: %.3f million" % (num_params_count(model.I)))
     print("Upsample: %.3f million" % (num_params_count(model.upsample)))
     print("rnn1: %.3f million" % (num_params_count(model.rnn1)))
-    print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
+    #print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
     print("fc1: %.3f million" % (num_params_count(model.fc1)))
     print("fc2: %.3f million" % (num_params_count(model.fc2)))
-    print("fc3: %.3f million" % (num_params_count(model.fc3)))
+    #print("fc3: %.3f million" % (num_params_count(model.fc3)))
     print(model)
 
     optimizer = optim.Adam(model.parameters(),
@@ -417,7 +426,7 @@ if __name__ == "__main__":
     if checkpoint_path is None:
         print("no checkpoint specified as --checkpoint argument, creating new model...")
     else:
-        model = load_checkpoint(checkpoint_path, model, optimizer, False)
+        model = load_checkpoint(checkpoint_path, model, optimizer, True) #ei False
         print("loading model from checkpoint:{}".format(checkpoint_path))
         # set global_test_step to True so we don't evaluate right when we load in the model
         global_test_step = True

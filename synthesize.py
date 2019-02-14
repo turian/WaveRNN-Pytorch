@@ -21,6 +21,10 @@ from hparams import hparams
 from utils import num_params_count
 import pickle
 import time
+import numpy as np
+import scipy as sp
+
+
 
 if __name__ == "__main__":
     args = docopt(__doc__)
@@ -49,16 +53,24 @@ if __name__ == "__main__":
     print('Loading: %s'%latest_checkpoint)
     # build model, create optimizer
     model = build_model().to(device)
-    checkpoint = torch.load(latest_checkpoint)
+    checkpoint = torch.load(latest_checkpoint, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
 
     print("I: %.3f million"%(num_params_count(model.I)))
     print("Upsample: %.3f million"%(num_params_count(model.upsample)))
     print("rnn1: %.3f million"%(num_params_count(model.rnn1)))
-    print("rnn2: %.3f million"%(num_params_count(model.rnn2)))
+    #print("rnn2: %.3f million"%(num_params_count(model.rnn2)))
     print("fc1: %.3f million"%(num_params_count(model.fc1)))
     print("fc2: %.3f million"%(num_params_count(model.fc2)))
-    print("fc3: %.3f million"%(num_params_count(model.fc3)))
+    #print("fc3: %.3f million"%(num_params_count(model.fc3)))
+
+
+    #onnx export
+    model.train(False)
+    #wav = np.load('WaveRNN-Pytorch/checkpoint/test_0_wav.npy')
+
+    #doesn't work torch.onnx.export(model, (torch.tensor(wav),torch.tensor(mel)), checkpoint_dir+'/wavernn.onnx', verbose=True, input_names=['mel_input'], output_names=['wav_output'])
+
 
     #mel = np.pad(mel,(24000,0),'constant')
     # n_mels = mel.shape[1]
@@ -68,7 +80,7 @@ if __name__ == "__main__":
 
     mel0 = mel.copy()
     start = time.time()
-    output0 = model.generate(mel0, batched=True, target=2000, overlap=64)
+    output0 = model.generate(mel0, batched=False, target=2000, overlap=64)
     total_time = time.time() - start
     frag_time = len(output0) / hparams.sample_rate
     print("Generation time: {}. Sound time: {}, ratio: {}".format(total_time, frag_time, frag_time/total_time))

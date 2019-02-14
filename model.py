@@ -62,7 +62,7 @@ class UpsampleNetwork(nn.Module) :
         super().__init__()
         total_scale = np.cumproduct(upsample_scales)[-1]
         self.indent = pad * total_scale
-        self.resnet = MelResNet(res_blocks, feat_dims, compute_dims, res_out_dims)
+        self.resnet1 = MelResNet(res_blocks, feat_dims, compute_dims, res_out_dims)
         self.resnet_stretch = Stretch2d(total_scale, 1)
         self.up_layers = nn.ModuleList()
         for scale in upsample_scales :
@@ -75,7 +75,7 @@ class UpsampleNetwork(nn.Module) :
             self.up_layers.append(conv)
     
     def forward(self, m) :
-        aux = self.resnet(m).unsqueeze(1)
+        aux = self.resnet1(m).unsqueeze(1)
         aux = self.resnet_stretch(aux)
         aux = aux.squeeze(1)
         m = m.unsqueeze(1)
@@ -101,47 +101,36 @@ class Model(nn.Module) :
         else:
             raise ValueError("input_type: {hp.input_type} not supported")
         self.rnn_dims = rnn_dims
-        self.aux_dims = res_out_dims // 4
+        self.aux_dims = res_out_dims // 2
         self.upsample = UpsampleNetwork(feat_dims, upsample_factors, compute_dims, 
                                         res_blocks, res_out_dims, pad)
-        self.I = nn.Linear(feat_dims + self.aux_dims + 1, rnn_dims)
+        self.I = nn.Linear(feat_dims + self.aux_dims - 1 + 1, rnn_dims)  #First dimension has to be divizible by 8, so we take away one aux channel
         self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
-        self.rnn2 = nn.GRU(rnn_dims + self.aux_dims, rnn_dims, batch_first=True)
+
         self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
-        self.fc2 = nn.Linear(fc_dims + self.aux_dims, fc_dims)
-        self.fc3 = nn.Linear(fc_dims, self.n_classes)
+        self.fc2 = nn.Linear(fc_dims, self.n_classes)
         num_params(self)
     
     def forward(self, x, mels) :
         bsize = x.size(0)
-        h1 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
-        h2 = torch.zeros(1, bsize, self.rnn_dims).to(x.device)
+        h1 = torch.zeros(1, bsize, self.rnn_dims)
+        h2 = torch.zeros(1, bsize, self.rnn_dims)
         mels, aux = self.upsample(mels)
         
-        aux_idx = [self.aux_dims * i for i in range(5)]
+        aux_idx = [self.aux_dims * i for i in range(3)]
         a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
         a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
-        a3 = aux[:, :, aux_idx[2]:aux_idx[3]]
-        a4 = aux[:, :, aux_idx[3]:aux_idx[4]]
-        
-        x = torch.cat([x.unsqueeze(-1), mels, a1], dim=2)
+
+        x = torch.cat([x.unsqueeze(-1), mels, a1[:,:,:-1]], dim=2)
         x = self.I(x)
         res = x
         x, _ = self.rnn1(x, h1)
-        
         x = x + res
-        res = x
+
         x = torch.cat([x, a2], dim=2)
-        x, _ = self.rnn2(x, h2)
-        
-        x = x + res
-        x = torch.cat([x, a3], dim=2)
         x = F.relu(self.fc1(x))
         
-        x = torch.cat([x, a4], dim=2)
-        x = F.relu(self.fc2(x))
-
-        x = self.fc3(x)
+        x = self.fc2(x)
 
         if hp.input_type == 'raw':
             return x
@@ -164,11 +153,11 @@ class Model(nn.Module) :
     #     rnn2 = self.get_gru_cell(self.rnn2)
     #
     #     with torch.no_grad() :
-    #         x = torch.zeros(1, 1).cuda()
-    #         h1 = torch.zeros(1, self.rnn_dims).cuda()
-    #         h2 = torch.zeros(1, self.rnn_dims).cuda()
+    #         x = torch.zeros(1, 1)
+    #         h1 = torch.zeros(1, self.rnn_dims)
+    #         h2 = torch.zeros(1, self.rnn_dims)
     #
-    #         mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
+    #         mels = torch.FloatTensor(mels).unsqueeze(0)
     #         mels, aux = self.upsample(mels)
     #
     #         aux_idx = [self.aux_dims * i for i in range(5)]
@@ -218,7 +207,7 @@ class Model(nn.Module) :
     #                 distrib = torch.distributions.Categorical(posterior)
     #                 sample = inv_mulaw_quantize(distrib.sample(), hp.mulaw_quantize_channels, True)
     #             output.append(sample.view(-1))
-    #             x = torch.FloatTensor([[sample]]).cuda()
+    #             x = torch.FloatTensor([[sample]])
     #     output = torch.stack(output).cpu().numpy()
     #     self.train()
     #     return output
@@ -229,7 +218,7 @@ class Model(nn.Module) :
         # i.e., it won't generalise to other shapes/dims
         b, t, c = x.size()
         total = t + 2 * pad if side == 'both' else t + pad
-        padded = torch.zeros(b, total, c).to(x.device)
+        padded = torch.zeros(b, total, c)
         if side == 'before' or side == 'both' :
             padded[:, pad:pad+t, :] = x
         elif side == 'after':
@@ -276,7 +265,7 @@ class Model(nn.Module) :
             padding = target + 2 * overlap - remaining
             x = self.pad_tensor(x, padding, side='after')
 
-        folded = torch.zeros(num_folds, target + 2 * overlap, features).to(x.device)
+        folded = torch.zeros(num_folds, target + 2 * overlap, features)
 
         # Get the values for the folded tensor
         for i in range(num_folds) :
@@ -357,55 +346,47 @@ class Model(nn.Module) :
         output = []
 
         rnn1 = self.get_gru_cell(self.rnn1)
-        rnn2 = self.get_gru_cell(self.rnn2)
 
         with torch.no_grad():
-
-            mels = torch.FloatTensor(mels).to(mels.device).unsqueeze(0)
+            mels = torch.FloatTensor(mels).unsqueeze(0)
             mels = self.pad_tensor(mels.transpose(1, 2), pad=hp.pad, side='both')
+
             mels, aux = self.upsample(mels.transpose(1, 2))
 
             if batched:
-                #target = mels.shape[1] // hp.batch_size_gen
                 mels = self.fold_with_overlap(mels, target, overlap)
                 aux = self.fold_with_overlap(aux, target, overlap)
 
             b_size, seq_len, _ = mels.size()
 
-            h1 = torch.zeros(b_size, self.rnn_dims).to(mels.device)
-            h2 = torch.zeros(b_size, self.rnn_dims).to(mels.device)
-            x = torch.zeros(b_size, 1).to(mels.device)
+            h1 = torch.zeros(b_size, self.rnn_dims)
+            h2 = torch.zeros(b_size, self.rnn_dims)
+            x = torch.zeros(b_size, 1)
 
             d = self.aux_dims
-            aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(4)]
+            aux_split = [aux[:, :, d * i:d * (i + 1)] for i in range(2)]
 
             for i in range(seq_len):
 
                 m_t = mels[:, i, :]
 
-                a1_t, a2_t, a3_t, a4_t = \
+                a1_t, a2_t = \
                     (a[:, i, :] for a in aux_split)
 
-                x = torch.cat([x, m_t, a1_t], dim=1)
+                x = torch.cat([x, m_t, a1_t[:,:-1]], dim=1)
                 x = self.I(x)
                 h1 = rnn1(x, h1)
 
                 x = x + h1
-                inp = torch.cat([x, a2_t], dim=1)
-                h2 = rnn2(inp, h2)
-
-                x = x + h2
-                x = torch.cat([x, a3_t], dim=1)
+                x = torch.cat([x, a2_t], dim=1)
                 x = F.relu(self.fc1(x))
 
-                x = torch.cat([x, a4_t], dim=1)
-                x = F.relu(self.fc2(x))
-
-                logits = self.fc3(x)
+                logits = self.fc2(x)
                 posterior = F.softmax(logits, dim=1)
                 distrib = torch.distributions.Categorical(posterior)
                 sample = 2 * distrib.sample().float() / (self.n_classes - 1.) - 1.
                 output.append(sample)
+
                 x = sample.unsqueeze(-1)
 
         output = torch.stack(output).transpose(0, 1)
@@ -425,24 +406,23 @@ class Model(nn.Module) :
         self.eval()
         output = []
         rnn1 = self.get_gru_cell(self.rnn1)
-        rnn2 = self.get_gru_cell(self.rnn2)
+        #rnn2 = self.get_gru_cell(self.rnn2)
         b_size = mels.shape[0]
         assert len(mels.shape) == 3, "mels should have shape [batch_size x 80 x mel_length]"
         
         with torch.no_grad() :
-            x = torch.zeros(b_size, 1).to(mels.device)
-            h1 = torch.zeros(b_size, self.rnn_dims).to(mels.device)
-            h2 = torch.zeros(b_size, self.rnn_dims).to(mels.device)
+
+            x = torch.zeros(b_size, 1)
+            h1 = torch.zeros(b_size, self.rnn_dims)
+            h2 = torch.zeros(b_size, self.rnn_dims)
             
-            mels = torch.FloatTensor(mels).to(mels.device)
+            mels = torch.FloatTensor(mels)
             mels, aux = self.upsample(mels)
             
-            aux_idx = [self.aux_dims * i for i in range(5)]
+            aux_idx = [self.aux_dims * i for i in range(3)]
             a1 = aux[:, :, aux_idx[0]:aux_idx[1]]
             a2 = aux[:, :, aux_idx[1]:aux_idx[2]]
-            a3 = aux[:, :, aux_idx[2]:aux_idx[3]]
-            a4 = aux[:, :, aux_idx[3]:aux_idx[4]]
-            
+
             seq_len = mels.size(1)
             
             for i in tqdm(range(seq_len)) :
@@ -450,24 +430,18 @@ class Model(nn.Module) :
                 m_t = mels[:, i, :]
                 a1_t = a1[:, i, :]
                 a2_t = a2[:, i, :]
-                a3_t = a3[:, i, :]
-                a4_t = a4[:, i, :]
+
                 
-                x = torch.cat([x, m_t, a1_t], dim=1)
+                x = torch.cat([x, m_t, a1_t[:,:-1]], dim=1)
                 x = self.I(x)
                 h1 = rnn1(x, h1)
                 
                 x = x + h1
-                inp = torch.cat([x, a2_t], dim=1)
-                h2 = rnn2(inp, h2)
-                
-                x = x + h2
-                x = torch.cat([x, a3_t], dim=1)
+                x = torch.cat([x, a2_t], dim=1)
+
                 x = F.relu(self.fc1(x))
-                
-                x = torch.cat([x, a4_t], dim=1)
-                x = F.relu(self.fc2(x))
-                x = self.fc3(x)
+                x = self.fc2(x)
+
                 if hp.input_type == 'raw':
                     sample = sample_from_beta_dist(x.unsqueeze(0))
                 elif hp.input_type == 'mixture':
@@ -479,7 +453,6 @@ class Model(nn.Module) :
                 elif hp.input_type == 'mulaw':
                     posterior = F.softmax(x, dim=1).view(b_size, -1)
                     distrib = torch.distributions.Categorical(posterior)
-                    print(type(distrib.sample()))
                     sample = inv_mulaw_quantize(distrib.sample(), hp.mulaw_quantize_channels, True)
                 output.append(sample.view(-1))
                 x = sample.view(b_size,1)
