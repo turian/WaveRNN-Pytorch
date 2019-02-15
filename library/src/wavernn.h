@@ -7,7 +7,7 @@
 
 using namespace Eigen;
 
-const int SPARSE_GROUP_SIZE = 8; //When pruning we use groups of 8 to reduce index
+const int SPARSE_GROUP_SIZE = 4; //When pruning we use groups of 4 to reduce index
 const uint8_t ROW_END_MARKER = 255;
 
 typedef Matrix<float, Dynamic, Dynamic, RowMajor> Matrixf;
