@@ -11,4 +11,6 @@ add_executable (vocoder vocoder.cpp)
 add_library(wavernn wavernn.cpp net_impl.cpp)
 target_link_libraries(vocoder wavernn Eigen3::Eigen)
 
+add_subdirectory(pybind11)
+pybind11_add_module(WaveRNNVocoder WaveRNNVocoder.cpp wavernn.cpp net_impl.cpp)
 

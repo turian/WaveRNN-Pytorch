@@ -170,12 +170,14 @@ Vectorf CompMatrix::operator*(const Vectorf &x)
     for(int i=0; i<nGroups; ++i){
         float sum = 0;
         int col = SPARSE_GROUP_SIZE*colIdx[i];
+
         //scalar product loop. compiler should optimize it.
         for(int k=0; k<SPARSE_GROUP_SIZE; ++k){
             sum += weight[weightPos++]*x_ptr[col++];
         }
         y_ptr[rowIdx[i]] += sum;
     }
+
     return y;
 }
 

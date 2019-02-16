@@ -27,11 +27,13 @@ This repo refracts the code and adds slight modifications, and removes running o
 * CUDA >=8.0
 * PyTorch >= v0.4.1
 
+* sudo aptitude install libsoundtouch-dev
+
 # Installation
 Ensure above requirements are met.
 
 ```
-git clone https://github.com/G-Wang/WaveRNN-Pytorch.git
+git clone https://github.com/geneing/WaveRNN-Pytorch.git
 cd WaveRNN-Pytorch
 pip install -r requirements.txt
 ```
