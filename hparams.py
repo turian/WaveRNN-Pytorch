@@ -19,7 +19,7 @@ hparams = tf.contrib.training.HParams(
     #
     # for Fatcord's original 9 bit audio, specify the audio bit rate. Note this corresponds to network output
     # of size 2**bits, so 9 bits would be 512 output, etc.
-    bits=10,
+    bits=9,
     # for mu-law
     mulaw_quantize_channels=512,
     # note: r9r9's deepvoice3 preprocessing is used instead of Fatcord's original.
@@ -43,8 +43,8 @@ hparams = tf.contrib.training.HParams(
     #
     # ----------------
     # model parameters
-    rnn_dims=256,
-    fc_dims=256,
+    rnn_dims=128,
+    fc_dims=128,
     pad=2,
     # note upsample factors must multiply out to be equal to hop_size, so adjust
     # if necessary (i.e 4 x 5 x 10 = 200)
