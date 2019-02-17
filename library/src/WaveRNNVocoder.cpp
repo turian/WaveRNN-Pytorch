@@ -1,5 +1,7 @@
 
 #include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
+
 #include <Eigen/Dense>
 
 #include <stdio.h>
@@ -23,9 +25,11 @@ public:
             throw std::runtime_error("Cannot open file.");
         }
         model.loadNext(fd);
+        isLoaded = true;
     }
 
-    Vectorf melToWav( Eigen::Ref<Matrixf> mels ){
+    Vectorf melToWav( Eigen::Ref<const MatrixPy> mels ){
+
         if( not isLoaded ){
             throw std::runtime_error("Model hasn't been loaded. Call loadWeights first.");
         }
