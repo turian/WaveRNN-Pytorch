@@ -1,14 +1,25 @@
 import sys
+import glob
+
 sys.path.insert(0,'lib/build-src-RelDebInfo')
 import WaveRNNVocoder
 import numpy as np
 
-a=WaveRNNVocoder.Vocoder()
+vocoder=WaveRNNVocoder.Vocoder()
 
-a.loadWeights('model_outputs/model.bin')
+vocoder.loadWeights('model_outputs/model.bin')
 
 mel_file='../TrainingData/LJSpeech-1.0.wavernn/mel/00001.npy'
-mel = np.load(mel_file)
-mel = mel.astype('float32')
-wav=a.melToWav(mel)
+mel1 = np.load(mel_file)
+mel1 = mel1.astype('float32')
+# wav=vocoder.melToWav(mel)
+# print()
+
+filelist = glob.glob('eval/mel*.npy')
+
+for fname in filelist:
+    mel = np.load(fname).T
+    wav = vocoder.melToWav(mel)
+    break
+
 print()
