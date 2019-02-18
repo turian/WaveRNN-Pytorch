@@ -26,6 +26,8 @@ This repo refactors the code and converts code to a proper pytorch script.
 * CUDA >=8.0
 * PyTorch >= v1.0
 
+* sudo aptitude install libsoundtouch-dev
+
 # Installation
 Ensure above requirements are met.
 

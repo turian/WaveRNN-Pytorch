@@ -327,10 +327,4 @@ if __name__ == "__main__":
         save_resnet(f, model)
         save_upsample(f, model)
         save_main(f, model)
-        # save_layer(f, model.I)
-        # save_layer(f, model.rnn1)
-        # save_layer(f, model.upsample.resnet.conv_in)
-        # save_layer(f, model.upsample.resnet.layers[0].conv1)
-        # save_layer(f, model.upsample.up_layers[1])  #2d convolution
-        # save_layer(f, model.upsample.resnet.layers[0].batch_norm1)
-    print()
+
