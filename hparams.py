@@ -3,7 +3,7 @@ import tensorflow as tf
 # Default hyperparameters:
 hparams = tf.contrib.training.HParams(
     name="WaveRNN",
-    num_workers=8,
+    num_workers=32,
     # Input type:
     # 1. raw [-1, 1]
     # 2. mixture [-1, 1]
@@ -22,11 +22,11 @@ hparams = tf.contrib.training.HParams(
     bits=9,
     # for mu-law
     mulaw_quantize_channels=512,
-    # note: r9r9's deepvoice3 preprocessing is used instead of Fatcord's original.
+    # note: r9r9's deepvoice3 preprocessing is used instead of Fatchord's original.
     # --------------
     # audio processing parameters
     num_mels=80,
-    fmin=55,
+    fmin=95,
     fmax=7600,
     n_fft=2048,
     hop_size=200,
@@ -39,6 +39,8 @@ hparams = tf.contrib.training.HParams(
     rescaling_max=0.999,
     allow_clipping_in_normalization=True,
     use_lws=False,
+    magnitude_power=2., #The power of the spectrogram magnitude (1. for energy, 2. for power)
+
     # ----------------
     #
     # ----------------
@@ -75,14 +77,14 @@ hparams = tf.contrib.training.HParams(
     # sparsification
     start_prune=20000,
     prune_steps=140000,  # 20000
-    sparsity_target=0.95,
+    sparsity_target=0.90,
     sparse_group=4,
 
     adam_beta1=0.9,
     adam_beta2=0.999,
     adam_eps=1e-8,
     amsgrad=False,
-    weight_decay=1e-5,
+    weight_decay=0, #1e-5,
     fix_learning_rate=None,
     # modify if one wants to use a fixed learning rate, else set to None to use noam learning rate
     # -----------------

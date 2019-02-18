@@ -380,13 +380,22 @@ class Model(nn.Module) :
                 x = x + h1
                 x = torch.cat([x, a2_t], dim=1)
                 x = F.relu(self.fc1(x))
+                x = self.fc2(x)
 
-                logits = self.fc2(x)
-                posterior = F.softmax(logits, dim=1)
-                distrib = torch.distributions.Categorical(posterior)
-                sample = 2 * distrib.sample().float() / (self.n_classes - 1.) - 1.
+                if hp.input_type == 'raw':
+                    sample = sample_from_beta_dist(x.unsqueeze(0)).view(-1)
+                elif hp.input_type == 'mixture':
+                    sample = sample_from_discretized_mix_logistic(x.unsqueeze(-1),hp.log_scale_min)
+                elif hp.input_type == 'bits':
+                    posterior = F.softmax(x, dim=1)
+                    distrib = torch.distributions.Categorical(posterior)
+                    sample = 2 * distrib.sample().float() / (self.n_classes - 1.) - 1.
+                elif hp.input_type == 'mulaw':
+                    posterior = F.softmax(x, dim=1)
+                    distrib = torch.distributions.Categorical(posterior)
+                    sample = inv_mulaw_quantize(distrib.sample(), hp.mulaw_quantize_channels, True)
+
                 output.append(sample)
-
                 x = sample.unsqueeze(-1)
 
         output = torch.stack(output).transpose(0, 1)
