@@ -22,7 +22,7 @@ def get_wav_mel(path):
     """
     wav = load_wav(path)
     mel = melspectrogram(wav)
-    if hp.input_type == 'raw':
+    if hp.input_type == 'raw' or hp.input_type=='mixture':
         return wav.astype(np.float32), mel
     elif hp.input_type == 'mulaw':
         quant = mulaw_quantize(wav, hp.mulaw_quantize_channels)

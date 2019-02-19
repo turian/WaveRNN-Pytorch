@@ -30,7 +30,7 @@ def inv_preemphasis(x):
 
 def spectrogram(y):
     D = _lws_processor().stft(preemphasis(y)).T
-    S = _amp_to_db(np.abs(D)) - hparams.ref_level_db
+    S = _amp_to_db(np.abs(D) ** hparams.magnitude_power) - hparams.ref_level_db
     return _normalize(S)
 
 
@@ -38,7 +38,7 @@ def inv_spectrogram(spectrogram):
     '''Converts spectrogram to waveform using librosa'''
     S = _db_to_amp(_denormalize(spectrogram) + hparams.ref_level_db)  # Convert back to linear
     processor = _lws_processor()
-    D = processor.run_lws(S.astype(np.float64).T ** hparams.power)
+    D = processor.run_lws(S.astype(np.float64).T ** (1/hparams.magnitude_power))
     y = processor.istft(D).astype(np.float32)
     return inv_preemphasis(y)
 
@@ -50,7 +50,7 @@ def _stft(y):
 
 def melspectrogram(y):
     D = _stft(preemphasis(y))
-    S = _amp_to_db(_linear_to_mel(np.abs(D))) - hparams.ref_level_db
+    S = _amp_to_db(_linear_to_mel(np.abs(D)**hparams.magnitude_power)) - hparams.ref_level_db
     if not hparams.allow_clipping_in_normalization:
         assert S.max() <= 0 and S.min() - hparams.min_level_db >= 0
     return _normalize(S)
