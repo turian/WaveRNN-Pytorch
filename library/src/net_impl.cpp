@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vector>
 #include <random>
 #include <numeric>
+#include <cmath>
 
 #include "wavernn.h"
 #include "net_impl.h"
@@ -123,7 +124,7 @@ Vectorf vstack( const Vectorf& x1, const Vectorf& x2, const Vectorf& x3 )
     return vstack( vstack( x1, x2), x3 );
 }
 
-float sampleCategorical( const VectorXf& probabilities )
+inline float sampleCategorical( const VectorXf& probabilities )
 {
     //Sampling using this algorithm https://en.wikipedia.org/wiki/Categorical_distribution#Sampling
     static std::ranlux24 rnd;
@@ -133,7 +134,15 @@ float sampleCategorical( const VectorXf& probabilities )
     std::partial_sum(probabilities.data(), probabilities.data()+probabilities.size(), cdf.begin());
     auto it = std::find_if(cdf.cbegin(), cdf.cend(), [uniform_random](float x){ return (x >= uniform_random);});
     int pos = std::distance(cdf.cbegin(), it);
-    return (2.*pos) / (probabilities.size()-1.) - 1.;
+    return pos;
+}
+
+inline float invMulawQuantize( float x_mu )
+{
+    const float mu = MULAW_QUANTIZE_CHANNELS - 1;
+    float x = (x_mu / mu) * 2.f - 1.f;
+    x = std::copysign(1.f, x) * (std::exp(std::fabs(x) * std::log1p(mu) ) - 1.f) / mu;
+    return x;
 }
 
 Vectorf Model::apply(const Matrixf &mels_in)
@@ -174,7 +183,8 @@ Vectorf Model::apply(const Matrixf &mels_in)
         Vectorf posterior = softmax( logits );
 
         float newAmplitude = sampleCategorical( posterior );
-
+        //newAmplitude = (2.*newAmplitude) / (posterior.size()-1.) - 1.; //for bits output
+        newAmplitude = invMulawQuantize( newAmplitude );   //mulaw output
         wav_out(i) = x(0) = newAmplitude;
 
     }

@@ -315,7 +315,7 @@ if __name__ == "__main__":
     # torch_test_batchnorm1d(model, checkpoint)
 
     mel = np.load(mel_file)
-    mel = mel.astype('float32')
+    mel = mel.astype('float32').T
     v = struct.pack('@ii', mel.shape[0], mel.shape[1])
     with open(output_path+'/mel.bin', 'wb') as f:
         f.write(v)
