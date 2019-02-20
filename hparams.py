@@ -49,8 +49,14 @@ hparams = tf.contrib.training.HParams(
     preemphasize = True, #whether to apply filter
     preemphasis = 0.97, #filter coefficient.
 
-    #    use_lws=False,
     magnitude_power=2., #The power of the spectrogram magnitude (1. for energy, 2. for power)
+
+	# Use LWS (https://github.com/Jonathan-LeRoux/lws) for STFT and phase reconstruction
+	# It's preferred to set True to use with https://github.com/r9y9/wavenet_vocoder
+	# Does not work if n_ffit is not multiple of hop_size!!
+	use_lws=False, #Only used to set as True if using WaveNet, no difference in performance is observed in either cases.
+	silence_threshold=2, #silence threshold used for sound trimming for wavenet preprocessing
+
 
     # ----------------
     #
