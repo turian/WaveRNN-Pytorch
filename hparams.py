@@ -26,7 +26,7 @@ hparams = tf.contrib.training.HParams(
     # --------------
     # audio processing parameters
     num_mels=80,
-    fmin=95,
+    fmin=55,
     fmax=7600,
     n_fft=2048,
     hop_size=200,
