@@ -90,12 +90,41 @@ def _db_to_amp(x):
     return np.power(10.0, x * 0.05)
 
 
+# def _normalize(S):
+#     return np.clip((S - hparams.min_level_db) / -hparams.min_level_db, 0, 1)
+#
+#
+# def _denormalize(S):
+#     return (np.clip(S, 0, 1) * -hparams.min_level_db) + hparams.min_level_db
+#
+
 def _normalize(S):
-    return np.clip((S - hparams.min_level_db) / -hparams.min_level_db, 0, 1)
+    if hparams.allow_clipping_in_normalization:
+        if hparams.symmetric_mels:
+            return np.clip((2 * hparams.max_abs_value) * ((S - hparams.min_level_db) / (-hparams.min_level_db)) - hparams.max_abs_value,
+                           -hparams.max_abs_value, hparams.max_abs_value)
+        else:
+            return np.clip(hparams.max_abs_value * ((S - hparams.min_level_db) / (-hparams.min_level_db)), 0, hparams.max_abs_value)
 
+    assert S.max() <= 0 and S.min() - hparams.min_level_db >= 0
+    if hparams.symmetric_mels:
+        return (2 * hparams.max_abs_value) * ((S - hparams.min_level_db) / (-hparams.min_level_db)) - hparams.max_abs_value
+    else:
+        return hparams.max_abs_value * ((S - hparams.min_level_db) / (-hparams.min_level_db))
 
-def _denormalize(S):
-    return (np.clip(S, 0, 1) * -hparams.min_level_db) + hparams.min_level_db
+def _denormalize(D):
+    if hparams.allow_clipping_in_normalization:
+        if hparams.symmetric_mels:
+            return (((np.clip(D, -hparams.max_abs_value,
+                              hparams.max_abs_value) + hparams.max_abs_value) * -hparams.min_level_db / (2 * hparams.max_abs_value))
+                    + hparams.min_level_db)
+        else:
+            return ((np.clip(D, 0, hparams.max_abs_value) * -hparams.min_level_db / hparams.max_abs_value) + hparams.min_level_db)
+
+    if hparams.symmetric_mels:
+        return (((D + hparams.max_abs_value) * -hparams.min_level_db / (2 * hparams.max_abs_value)) + hparams.min_level_db)
+    else:
+        return ((D * -hparams.min_level_db / hparams.max_abs_value) + hparams.min_level_db)
 
 
 # Fatcord's preprocessing

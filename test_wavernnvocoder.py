@@ -23,3 +23,9 @@ for fname in filelist:
     break
 
 print()
+
+fnames=['inputs/00000.npy','inputs/mel-northandsouth_01_f000001.npy']
+mel0=np.load(fnames[0])
+mel1=np.load(fnames[1]).T
+mel2=np.load(filelist[0]).T
+

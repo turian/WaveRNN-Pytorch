@@ -32,13 +32,24 @@ hparams = tf.contrib.training.HParams(
     hop_size=200,
     win_size=800,
     sample_rate=16000,
-    preemphasis=0.97,
+
     min_level_db=-100,
     ref_level_db=20,
     rescaling=False,
     rescaling_max=0.999,
-    allow_clipping_in_normalization=True,
-    use_lws=False,
+
+    #Mel and Linear spectrograms normalization/scaling and clipping
+    signal_normalization = True, #Whether to normalize mel spectrograms to some predefined range (following below parameters)
+    allow_clipping_in_normalization = True, #Only relevant if mel_normalization = True
+    symmetric_mels = True, #Whether to scale the data to be symmetric around 0. (Also multiplies the output range by 2, faster and cleaner convergence)
+    max_abs_value = 4., #max absolute value of data. If symmetric, data will be [-max, max] else [0, max] (Must not be too big to avoid gradient explosion,
+
+    #Contribution by @begeekmyfriend
+    #Spectrogram Pre-Emphasis (Lfilter: Reduce spectrogram noise and helps model certitude levels. Also allows for better G&L phase reconstruction)
+    preemphasize = True, #whether to apply filter
+    preemphasis = 0.97, #filter coefficient.
+
+    #    use_lws=False,
     magnitude_power=2., #The power of the spectrogram magnitude (1. for energy, 2. for power)
 
     # ----------------
