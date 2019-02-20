@@ -218,7 +218,7 @@ class Model(nn.Module) :
         # i.e., it won't generalise to other shapes/dims
         b, t, c = x.size()
         total = t + 2 * pad if side == 'both' else t + pad
-        padded = torch.zeros(b, total, c)
+        padded = torch.zeros(b, total, c).cuda()
         if side == 'before' or side == 'both' :
             padded[:, pad:pad+t, :] = x
         elif side == 'after':
