@@ -1,7 +1,8 @@
 """
 Preprocess dataset
 
-usage: preproess.py [options] <wav-dir>
+usage:
+    preprocess.py [options] <wav-dir>...
 
 options:
      --output-dir=<dir>      Directory where processed outputs are saved. [default: data_dir].
@@ -34,14 +35,19 @@ def get_wav_mel(path):
         raise ValueError("hp.input_type {} not recognized".format(hp.input_type))
 
 
-def process_data(wav_dir, output_path, mel_path, wav_path):
+def process_data(wav_dirs, output_path, mel_path, wav_path):
     """
     given wav directory and output directory, process wav files and save quantized wav and mel
     spectrogram to output directory
     """
     dataset_ids = []
     # get list of wav files
-    wav_files = os.listdir(wav_dir)
+    wav_files=[]
+    for wav_dir in wav_dirs:
+        thisdir = os.listdir(wav_dir)
+        thisdir=[ os.path.join(wav_dir, thisfile) for thisfile in thisdir]
+        wav_files += thisdir
+
     # check wav_file
     assert len(wav_files) != 0 or wav_files[0][-4:] == '.wav', "no wav files found!"
     # create training and testing splits

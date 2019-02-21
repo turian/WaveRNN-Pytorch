@@ -2,6 +2,7 @@ import sys
 import glob
 
 sys.path.insert(0,'lib/build-src-RelDebInfo')
+sys.path.insert(0,'library/build-src-Desktop-RelWithDebInfo')
 import WaveRNNVocoder
 import numpy as np
 
@@ -18,7 +19,7 @@ vocoder.loadWeights('model_outputs/model.bin')
 filelist = glob.glob('eval/mel*.npy')
 
 for fname in filelist:
-    mel = np.load(fname).T
+    mel = np.load(fname)
     wav = vocoder.melToWav(mel)
     break
 
