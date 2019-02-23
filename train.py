@@ -23,7 +23,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import raw_collate, discrete_collate, AudiobookDataset
+from dataset import raw_collate, discrete_collate, AudiobookDataset, TacotronDataset
 from distributions import *
 from hparams import hparams as hp
 from loss_function import nll_loss
@@ -376,7 +376,8 @@ if __name__ == "__main__":
     # make dirs, load dataloader and set up device
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(os.path.join(checkpoint_dir, 'eval'), exist_ok=True)
-    dataset = AudiobookDataset(data_root)
+    #dataset = AudiobookDataset(data_root)
+    dataset = TacotronDataset(data_root)
     if hp.input_type == 'raw':
         collate_fn = raw_collate
     elif hp.input_type == 'mixture':
@@ -444,7 +445,8 @@ if __name__ == "__main__":
 
 def test_eval():
     data_root = "data_dir"
-    dataset = AudiobookDataset(data_root)
+    #dataset = AudiobookDataset(data_root)
+    dataset = TacotronDataset(data_root)
     if hp.input_type == 'raw':
         collate_fn = raw_collate
     elif hp.input_type == 'bits':
