@@ -10,7 +10,7 @@ hparams = tf.contrib.training.HParams(
     # 3. bits [0, 512]
     # 4. mulaw[0, mulaw_quantize_channels]
     #
-    input_type='bits',
+    input_type='mulaw',
     #
     # distribution type, currently supports only 'beta' and 'mixture'
     distribution='beta',  # or "mixture"
@@ -69,7 +69,7 @@ hparams = tf.contrib.training.HParams(
     # if necessary (i.e 4 x 5 x 10 = 200)
     upsample_factors=(4, 5, 10),
     compute_dims=64,
-    res_out_dims=32*2, #aux output is fed into 3 downstream nets
+    res_out_dims=32*2, #aux output is fed into 2 downstream nets
     res_blocks=3,
     # ----------------
     #

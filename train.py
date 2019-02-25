@@ -242,12 +242,12 @@ def evaluate_model(model, data_loader, checkpoint_dir, limit_eval_to=5):
     counter = 0
     output_dir = os.path.join(checkpoint_dir, 'eval')
     for f in test_files:
-        if f[-7:] == "mel.npy":
-            mel = np.load(os.path.join(test_path, f))
+        if (f[-7:] == "mel.npy") or ('mel' in f):
+            mel = np.load(os.path.join(test_path, f)).T
             wav = model.generate(mel, batched=True)
             # save wav
             wav_path = os.path.join(output_dir, "checkpoint_step{:09d}_wav_{}.wav".format(global_step, counter))
-            librosa.output.write_wav(wav_path, wav, sr=hp.sample_rate)
+            librosa.output.write_wav(wav_path, wav.astype('float32'), sr=hp.sample_rate)
             # save wav plot
             fig_path = os.path.join(output_dir, "checkpoint_step{:09d}_wav_{}.png".format(global_step, counter))
             fig = plt.plot(wav.reshape(-1))
@@ -260,7 +260,7 @@ def evaluate_model(model, data_loader, checkpoint_dir, limit_eval_to=5):
                 # save wav
                 wav_path = os.path.join(output_dir,
                                         "checkpoint_step{:09d}_wav_unbatched_{}.wav".format(global_step, counter))
-                librosa.output.write_wav(wav_path, wav, sr=hp.sample_rate)
+                librosa.output.write_wav(wav_path, wav.astype('float32'), sr=hp.sample_rate)
                 # save wav plot
                 fig_path = os.path.join(output_dir,
                                         "checkpoint_step{:09d}_wav_unbatched_{}.png".format(global_step, counter))
