@@ -47,6 +47,8 @@ if __name__ == "__main__":
 
     mel_file_name = args['<mel_input.npy>']
     mel = np.load(mel_file_name)
+    if mel.shape[0] > mel.shape[1]: #ugly hack for transposed mels
+        mel = mel.T
 
     flist = glob.glob(f'{checkpoint_dir}/checkpoint_*.pth')
     latest_checkpoint = max(flist, key=os.path.getctime)

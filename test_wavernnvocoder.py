@@ -1,6 +1,9 @@
 import sys
 import glob
 
+from scipy.io.wavfile import write
+
+
 sys.path.insert(0,'lib/build-src-RelDebInfo')
 sys.path.insert(0,'library/build-src-Desktop-RelWithDebInfo')
 import WaveRNNVocoder
@@ -19,9 +22,12 @@ vocoder.loadWeights('model_outputs/model.bin')
 filelist = glob.glob('eval/mel*.npy')
 
 for fname in filelist:
-    mel = np.load(fname)
+    mel = np.load(fname).T
     wav = vocoder.melToWav(mel)
     break
+
+#scaled = np.int16(wav/np.max(np.abs(wav)) * 32767)
+write('test.wav',16000, wav)
 
 print()
 
