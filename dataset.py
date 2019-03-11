@@ -68,14 +68,14 @@ class MozillaTTS(Dataset):
             for row in csvreader:
                 self.metadata.append(row)
 
-        self.mel_path = os.path.join(data_path, "mels")
+        self.mel_path = os.path.join(data_path, "mel")
         self.wav_path = os.path.join(data_path, "audio")
-        self.test_path = os.path.join(data_path, "mels")
+        self.test_path = os.path.join(data_path, "mel")
 
     def __getitem__(self, index):
         entry = self.metadata[index]
-        m = np.load(entry[2]).T
-        wav = np.load(entry[1])
+        m = np.load(entry[2].strip())
+        wav = np.load(entry[1].strip())
 
         if hp.input_type == 'raw' or hp.input_type=='mixture':
             wav = wav.astype(np.float32)
