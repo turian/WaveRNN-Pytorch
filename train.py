@@ -23,7 +23,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import raw_collate, discrete_collate, AudiobookDataset, TacotronDataset
+from dataset import raw_collate, discrete_collate, AudiobookDataset, TacotronDataset, MozillaTTS
 from distributions import *
 from hparams import hparams as hp
 from loss_function import nll_loss
@@ -294,7 +294,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target)]
+    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target), (model.fc3,hp.sparsity_target)]
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
@@ -377,7 +377,8 @@ if __name__ == "__main__":
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(os.path.join(checkpoint_dir, 'eval'), exist_ok=True)
     #dataset = AudiobookDataset(data_root)
-    dataset = TacotronDataset(data_root)
+    #dataset = TacotronDataset(data_root)
+    dataset = MozillaTTS( data_root )
     if hp.input_type == 'raw':
         collate_fn = raw_collate
     elif hp.input_type == 'mixture':
@@ -407,7 +408,7 @@ if __name__ == "__main__":
     #print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
     print("fc1: %.3f million" % (num_params_count(model.fc1)))
     print("fc2: %.3f million" % (num_params_count(model.fc2)))
-    #print("fc3: %.3f million" % (num_params_count(model.fc3)))
+    print("fc3: %.3f million" % (num_params_count(model.fc3)))
     print(model)
 
     optimizer = optim.Adam(model.parameters(),
@@ -446,7 +447,8 @@ if __name__ == "__main__":
 def test_eval():
     data_root = "data_dir"
     #dataset = AudiobookDataset(data_root)
-    dataset = TacotronDataset(data_root)
+    #dataset = TacotronDataset(data_root)
+    dataset = MozillaTTS( data_root )
     if hp.input_type == 'raw':
         collate_fn = raw_collate
     elif hp.input_type == 'bits':
