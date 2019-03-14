@@ -62,8 +62,8 @@ hparams = tf.contrib.training.HParams(
     #
     # ----------------
     # model parameters
-    rnn_dims=192,
-    fc_dims=192,
+    rnn_dims=256,
+    fc_dims=128,
     pad=2,
     # note upsample factors must multiply out to be equal to hop_size, so adjust
     # if necessary (i.e 4 x 5 x 10 = 200)
@@ -80,7 +80,7 @@ hparams = tf.contrib.training.HParams(
     save_every_step=10000,
     evaluate_every_step=10000,
     # seq_len_factor can be adjusted to increase training sequence length (will increase GPU usage)
-    seq_len_factor=9,
+    seq_len_factor=7,
 
     grad_norm=10,
     # learning rate parameters
@@ -93,8 +93,8 @@ hparams = tf.contrib.training.HParams(
 
     # sparsification
     start_prune=40000,
-    prune_steps=140000,  # 20000
-    sparsity_target=0.95,
+    prune_steps=100000,  # 20000
+    sparsity_target=0.96,
     sparse_group=4,
 
     adam_beta1=0.9,

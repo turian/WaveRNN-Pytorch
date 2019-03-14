@@ -150,12 +150,11 @@ class Pruner(object):
         return z
 
     def prune(self, step):
-
         for ((l,z), m) in zip(self.layers, self.masks):
             z_curr = self.update_sparsity(step, z)
             m.update_mask(l, z_curr)
             m.apply_mask(l)
-        return self.count_num_pruned()
+        return self.count_num_pruned(), self.count_total_params()
 
     def restart(self, layers, step):
         # In case training is stopped
@@ -173,7 +172,7 @@ class Pruner(object):
     def count_total_params(self):
         for m in self.masks:
             self.total_params += m.total_params
-
+        return self.total_params
 
 def save_checkpoint(device, model, optimizer, step, checkpoint_dir, epoch):
     checkpoint_path = join(
@@ -320,7 +319,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             # clip gradient norm
             grad_norm = nn.utils.clip_grad_norm_(model.parameters(), hp.grad_norm)
             optimizer.step()
-            num_pruned=pruner.prune(global_step)
+            num_pruned, num_total = pruner.prune(global_step)
 
             running_loss += loss.item()
             avg_loss = running_loss / (i + 1)
@@ -329,6 +328,8 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             writer.add_scalar("avg_loss", float(avg_loss), global_step)
             writer.add_scalar("learning_rate", float(current_lr), global_step)
             writer.add_scalar("grad_norm", float(grad_norm), global_step)
+            writer.add_scalar("num_pruned", float(num_pruned), global_step)
+            writer.add_scalar("fraction_pruned", float(num_pruned)/float(num_total), global_step)
 
             # saving checkpoint if needed
             if global_step != 0 and global_step % hp.save_every_step == 0:
@@ -346,8 +347,8 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
                 global_test_step = False
             global_step += 1
 
-        print("epoch:{}, running loss:{}, average loss:{}, current lr:{}, num_pruned:{}".format(global_epoch, running_loss, avg_loss,
-                                                                                 current_lr, num_pruned))
+        print("epoch:{}, running loss:{}, average loss:{}, current lr:{}, num_pruned:{} ({}%)".format(global_epoch, running_loss, avg_loss,
+                                                                                 current_lr, num_pruned, num_pruned/num_total))
         global_epoch += 1
 
 
