@@ -154,7 +154,7 @@ class Pruner(object):
             z_curr = self.update_sparsity(step, z)
             m.update_mask(l, z_curr)
             m.apply_mask(l)
-        return self.count_num_pruned(), self.count_total_params()
+        return self.count_num_pruned(), z_curr
 
     def restart(self, layers, step):
         # In case training is stopped
@@ -293,7 +293,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target), (model.fc3,hp.sparsity_target)]
+    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc3,hp.sparsity_target)] #(model.fc2,hp.sparsity_target),
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
@@ -319,7 +319,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             # clip gradient norm
             grad_norm = nn.utils.clip_grad_norm_(model.parameters(), hp.grad_norm)
             optimizer.step()
-            num_pruned, num_total = pruner.prune(global_step)
+            num_pruned, z = pruner.prune(global_step)
 
             running_loss += loss.item()
             avg_loss = running_loss / (i + 1)
@@ -329,7 +329,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             writer.add_scalar("learning_rate", float(current_lr), global_step)
             writer.add_scalar("grad_norm", float(grad_norm), global_step)
             writer.add_scalar("num_pruned", float(num_pruned), global_step)
-            writer.add_scalar("fraction_pruned", float(num_pruned)/float(num_total), global_step)
+            writer.add_scalar("fraction_pruned", z, global_step)
 
             # saving checkpoint if needed
             if global_step != 0 and global_step % hp.save_every_step == 0:
@@ -348,7 +348,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             global_step += 1
 
         print("epoch:{}, running loss:{}, average loss:{}, current lr:{}, num_pruned:{} ({}%)".format(global_epoch, running_loss, avg_loss,
-                                                                                 current_lr, num_pruned, num_pruned/num_total))
+                                                                                 current_lr, num_pruned, z))
         global_epoch += 1
 
 
@@ -408,7 +408,7 @@ if __name__ == "__main__":
     print("rnn1: %.3f million" % (num_params_count(model.rnn1)))
     #print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
     print("fc1: %.3f million" % (num_params_count(model.fc1)))
-    print("fc2: %.3f million" % (num_params_count(model.fc2)))
+    #print("fc2: %.3f million" % (num_params_count(model.fc2)))
     print("fc3: %.3f million" % (num_params_count(model.fc3)))
     print(model)
 
