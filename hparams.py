@@ -62,7 +62,7 @@ hparams = tf.contrib.training.HParams(
     #
     # ----------------
     # model parameters
-    rnn_dims=256,
+    rnn_dims=192,
     fc_dims=128,
     pad=2,
     # note upsample factors must multiply out to be equal to hop_size, so adjust

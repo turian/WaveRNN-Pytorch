@@ -6,7 +6,7 @@ options:
     --checkpoint-dir=<dir>      Directory where to save model checkpoints [default: checkpoints].
     --checkpoint=<path>         Restore model from checkpoint path if given.
     --log-event-path=<path>     Path to tensorboard event log
-    --dataset=<name>            Dataset type Tacotron, TTS, Audiobooks [default:Tacotron]
+    --dataset=<name>            Dataset type Tacotron, TTS, Audiobooks [default: Tacotron].
     -h, --help                  Show this help message and exit
 """
 import os
@@ -244,6 +244,8 @@ def evaluate_model(model, data_loader, checkpoint_dir, limit_eval_to=5):
     for f in test_files:
         if (f[-7:] == "mel.npy") or ('mel' in f):
             mel = np.load(os.path.join(test_path, f))
+            if mel.shape[-1]==hp.num_mels: #fix the order
+                mel = mel.T
             wav = model.generate(mel, batched=True)
             # save wav
             wav_path = os.path.join(output_dir, "checkpoint_step{:09d}_wav_{}.wav".format(global_step, counter))
