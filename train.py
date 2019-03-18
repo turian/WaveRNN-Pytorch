@@ -6,6 +6,7 @@ options:
     --checkpoint-dir=<dir>      Directory where to save model checkpoints [default: checkpoints].
     --checkpoint=<path>         Restore model from checkpoint path if given.
     --log-event-path=<path>     Path to tensorboard event log
+    --dataset=<name>            Dataset type Tacotron, TTS, Audiobooks [default:Tacotron]
     -h, --help                  Show this help message and exit
 """
 import os
@@ -366,6 +367,7 @@ def test_prune(model):
     return layers
 
 
+datasetreader = {"Tacotron":TacotronDataset, "TTS":MozillaTTS, "Audiobooks":AudiobookDataset}
 if __name__ == "__main__":
     args = docopt(__doc__)
     # print("Command line args:\n", args)
@@ -373,13 +375,14 @@ if __name__ == "__main__":
     checkpoint_path = args["--checkpoint"]
     data_root = args["<data-root>"]
     log_event_path = args["--log-event-path"]
-
+    dataset_type = args["--dataset"]
     # make dirs, load dataloader and set up device
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(os.path.join(checkpoint_dir, 'eval'), exist_ok=True)
     #dataset = AudiobookDataset(data_root)
     #dataset = TacotronDataset(data_root)
-    dataset = MozillaTTS( data_root )
+    dataset = datasetreader[dataset_type]( data_root )
+
     if hp.input_type == 'raw':
         collate_fn = raw_collate
     elif hp.input_type == 'mixture':

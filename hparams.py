@@ -80,7 +80,7 @@ hparams = tf.contrib.training.HParams(
     save_every_step=10000,
     evaluate_every_step=10000,
     # seq_len_factor can be adjusted to increase training sequence length (will increase GPU usage)
-    seq_len_factor=11,
+    seq_len_factor=5,
 
     grad_norm=10,
     # learning rate parameters
@@ -94,7 +94,7 @@ hparams = tf.contrib.training.HParams(
     # sparsification
     start_prune=40000,
     prune_steps=80000,  # 20000
-    sparsity_target=0.85,
+    sparsity_target=0.90,
     sparse_group=4,
 
     adam_beta1=0.9,
