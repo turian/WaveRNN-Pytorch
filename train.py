@@ -6,6 +6,7 @@ options:
     --checkpoint-dir=<dir>      Directory where to save model checkpoints [default: checkpoints].
     --checkpoint=<path>         Restore model from checkpoint path if given.
     --log-event-path=<path>     Path to tensorboard event log
+    --dataset=<name>            Dataset type Tacotron, TTS, Audiobooks [default: Tacotron].
     -h, --help                  Show this help message and exit
 """
 import os
@@ -23,7 +24,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import raw_collate, discrete_collate, AudiobookDataset, TacotronDataset
+from dataset import raw_collate, discrete_collate, AudiobookDataset, TacotronDataset, MozillaTTS
 from distributions import *
 from hparams import hparams as hp
 from loss_function import nll_loss
@@ -150,12 +151,11 @@ class Pruner(object):
         return z
 
     def prune(self, step):
-
         for ((l,z), m) in zip(self.layers, self.masks):
             z_curr = self.update_sparsity(step, z)
             m.update_mask(l, z_curr)
             m.apply_mask(l)
-        return self.count_num_pruned()
+        return self.count_num_pruned(), z_curr
 
     def restart(self, layers, step):
         # In case training is stopped
@@ -173,7 +173,7 @@ class Pruner(object):
     def count_total_params(self):
         for m in self.masks:
             self.total_params += m.total_params
-
+        return self.total_params
 
 def save_checkpoint(device, model, optimizer, step, checkpoint_dir, epoch):
     checkpoint_path = join(
@@ -243,7 +243,9 @@ def evaluate_model(model, data_loader, checkpoint_dir, limit_eval_to=5):
     output_dir = os.path.join(checkpoint_dir, 'eval')
     for f in test_files:
         if (f[-7:] == "mel.npy") or ('mel' in f):
-            mel = np.load(os.path.join(test_path, f)).T
+            mel = np.load(os.path.join(test_path, f))
+            if mel.shape[-1]==hp.num_mels: #fix the order
+                mel = mel.T
             wav = model.generate(mel, batched=True)
             # save wav
             wav_path = os.path.join(output_dir, "checkpoint_step{:09d}_wav_{}.wav".format(global_step, counter))
@@ -294,7 +296,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc2,hp.sparsity_target)]
+    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc3,hp.sparsity_target)] #(model.fc2,hp.sparsity_target),
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
@@ -320,7 +322,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             # clip gradient norm
             grad_norm = nn.utils.clip_grad_norm_(model.parameters(), hp.grad_norm)
             optimizer.step()
-            num_pruned=pruner.prune(global_step)
+            num_pruned, z = pruner.prune(global_step)
 
             running_loss += loss.item()
             avg_loss = running_loss / (i + 1)
@@ -329,6 +331,8 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             writer.add_scalar("avg_loss", float(avg_loss), global_step)
             writer.add_scalar("learning_rate", float(current_lr), global_step)
             writer.add_scalar("grad_norm", float(grad_norm), global_step)
+            writer.add_scalar("num_pruned", float(num_pruned), global_step)
+            writer.add_scalar("fraction_pruned", z, global_step)
 
             # saving checkpoint if needed
             if global_step != 0 and global_step % hp.save_every_step == 0:
@@ -346,8 +350,8 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
                 global_test_step = False
             global_step += 1
 
-        print("epoch:{}, running loss:{}, average loss:{}, current lr:{}, num_pruned:{}".format(global_epoch, running_loss, avg_loss,
-                                                                                 current_lr, num_pruned))
+        print("epoch:{}, running loss:{}, average loss:{}, current lr:{}, num_pruned:{} ({}%)".format(global_epoch, running_loss, avg_loss,
+                                                                                 current_lr, num_pruned, z))
         global_epoch += 1
 
 
@@ -365,6 +369,7 @@ def test_prune(model):
     return layers
 
 
+datasetreader = {"Tacotron":TacotronDataset, "TTS":MozillaTTS, "Audiobooks":AudiobookDataset}
 if __name__ == "__main__":
     args = docopt(__doc__)
     # print("Command line args:\n", args)
@@ -372,12 +377,14 @@ if __name__ == "__main__":
     checkpoint_path = args["--checkpoint"]
     data_root = args["<data-root>"]
     log_event_path = args["--log-event-path"]
-
+    dataset_type = args["--dataset"]
     # make dirs, load dataloader and set up device
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(os.path.join(checkpoint_dir, 'eval'), exist_ok=True)
     #dataset = AudiobookDataset(data_root)
-    dataset = TacotronDataset(data_root)
+    #dataset = TacotronDataset(data_root)
+    dataset = datasetreader[dataset_type]( data_root )
+
     if hp.input_type == 'raw':
         collate_fn = raw_collate
     elif hp.input_type == 'mixture':
@@ -406,8 +413,8 @@ if __name__ == "__main__":
     print("rnn1: %.3f million" % (num_params_count(model.rnn1)))
     #print("rnn2: %.3f million" % (num_params_count(model.rnn2)))
     print("fc1: %.3f million" % (num_params_count(model.fc1)))
-    print("fc2: %.3f million" % (num_params_count(model.fc2)))
-    #print("fc3: %.3f million" % (num_params_count(model.fc3)))
+    #print("fc2: %.3f million" % (num_params_count(model.fc2)))
+    print("fc3: %.3f million" % (num_params_count(model.fc3)))
     print(model)
 
     optimizer = optim.Adam(model.parameters(),
@@ -446,7 +453,8 @@ if __name__ == "__main__":
 def test_eval():
     data_root = "data_dir"
     #dataset = AudiobookDataset(data_root)
-    dataset = TacotronDataset(data_root)
+    #dataset = TacotronDataset(data_root)
+    dataset = MozillaTTS( data_root )
     if hp.input_type == 'raw':
         collate_fn = raw_collate
     elif hp.input_type == 'bits':

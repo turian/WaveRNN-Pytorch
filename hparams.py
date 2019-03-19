@@ -19,7 +19,7 @@ hparams = tf.contrib.training.HParams(
     #
     # for Fatcord's original 9 bit audio, specify the audio bit rate. Note this corresponds to network output
     # of size 2**bits, so 9 bits would be 512 output, etc.
-    bits=9,
+    bits=10,
     # for mu-law
     mulaw_quantize_channels=512,
     # note: r9r9's deepvoice3 preprocessing is used instead of Fatchord's original.
@@ -46,10 +46,10 @@ hparams = tf.contrib.training.HParams(
 
     #Contribution by @begeekmyfriend
     #Spectrogram Pre-Emphasis (Lfilter: Reduce spectrogram noise and helps model certitude levels. Also allows for better G&L phase reconstruction)
-    preemphasize = True, #whether to apply filter
+    preemphasize = False, #whether to apply filter
     preemphasis = 0.97, #filter coefficient.
 
-    magnitude_power=2., #The power of the spectrogram magnitude (1. for energy, 2. for power)
+    magnitude_power=1., #The power of the spectrogram magnitude (1. for energy, 2. for power)
 
 	# Use LWS (https://github.com/Jonathan-LeRoux/lws) for STFT and phase reconstruction
 	# It's preferred to set True to use with https://github.com/r9y9/wavenet_vocoder
@@ -62,8 +62,8 @@ hparams = tf.contrib.training.HParams(
     #
     # ----------------
     # model parameters
-    rnn_dims=192,
-    fc_dims=192,
+    rnn_dims=256,
+    fc_dims=128,
     pad=2,
     # note upsample factors must multiply out to be equal to hop_size, so adjust
     # if necessary (i.e 4 x 5 x 10 = 200)
@@ -80,7 +80,7 @@ hparams = tf.contrib.training.HParams(
     save_every_step=10000,
     evaluate_every_step=10000,
     # seq_len_factor can be adjusted to increase training sequence length (will increase GPU usage)
-    seq_len_factor=7,
+    seq_len_factor=5,
 
     grad_norm=10,
     # learning rate parameters
@@ -92,9 +92,9 @@ hparams = tf.contrib.training.HParams(
     lr_step_interval=15000,
 
     # sparsification
-    start_prune=20000,
-    prune_steps=140000,  # 20000
-    sparsity_target=0.90,
+    start_prune=40000,
+    prune_steps=80000,  # 20000
+    sparsity_target=0.85,
     sparse_group=4,
 
     adam_beta1=0.9,

@@ -108,7 +108,8 @@ class Model(nn.Module) :
         self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
 
         self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
-        self.fc2 = nn.Linear(fc_dims, self.n_classes)
+        #self.fc2 = nn.Linear(fc_dims, fc_dims)
+        self.fc3 = nn.Linear(fc_dims, self.n_classes)
         num_params(self)
     
     def forward(self, x, mels) :
@@ -129,8 +130,9 @@ class Model(nn.Module) :
 
         x = torch.cat([x, a2], dim=2)
         x = F.relu(self.fc1(x))
-        
-        x = self.fc2(x)
+        #x = F.relu(self.fc2(x))
+
+        x = self.fc3(x)
 
         if hp.input_type == 'raw':
             return x
@@ -380,7 +382,8 @@ class Model(nn.Module) :
                 x = x + h1
                 x = torch.cat([x, a2_t], dim=1)
                 x = F.relu(self.fc1(x))
-                x = self.fc2(x)
+                #x = F.relu(self.fc2(x))
+                x = self.fc3(x)
 
                 if hp.input_type == 'raw':
                     sample = sample_from_beta_dist(x.unsqueeze(0)).view(-1)
@@ -447,7 +450,8 @@ class Model(nn.Module) :
                 x = torch.cat([x, a2_t], dim=1)
 
                 x = F.relu(self.fc1(x))
-                x = self.fc2(x)
+                #x = F.relu(self.fc2(x))
+                x = self.fc3(x)
 
                 if hp.input_type == 'raw':
                     sample = sample_from_beta_dist(x.unsqueeze(0))
