@@ -62,7 +62,7 @@ hparams = tf.contrib.training.HParams(
     #
     # ----------------
     # model parameters
-    rnn_dims=192,
+    rnn_dims=256,
     fc_dims=128,
     pad=2,
     # note upsample factors must multiply out to be equal to hop_size, so adjust
@@ -94,7 +94,7 @@ hparams = tf.contrib.training.HParams(
     # sparsification
     start_prune=40000,
     prune_steps=80000,  # 20000
-    sparsity_target=0.90,
+    sparsity_target=0.85,
     sparse_group=4,
 
     adam_beta1=0.9,
