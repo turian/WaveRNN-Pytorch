@@ -289,7 +289,7 @@ def save_main(f, model):
     save_layer(f, model.I)
     save_layer(f, model.rnn1)
     save_layer(f, model.fc1)
-    save_layer(f, model.fc2)
+    save_layer(f, model.fc3)
     return
 
 if __name__ == "__main__":
@@ -314,12 +314,12 @@ if __name__ == "__main__":
     # torch_test_conv2d(model, checkpoint)
     # torch_test_batchnorm1d(model, checkpoint)
 
-    mel = np.load(mel_file)
-    mel = mel.astype('float32').T
-    v = struct.pack('@ii', mel.shape[0], mel.shape[1])
-    with open(output_path+'/mel.bin', 'wb') as f:
-        f.write(v)
-        f.write(mel.tobytes(order='C'))
+    # mel = np.load(mel_file)
+    # mel = mel.astype('float32').T
+    # v = struct.pack('@ii', mel.shape[0], mel.shape[1])
+    # with open(output_path+'/mel.bin', 'wb') as f:
+    #     f.write(v)
+    #     f.write(mel.tobytes(order='C'))
 
     with open(output_path+'/model.bin','wb') as f:
         v = struct.pack('@iiii', hp.res_blocks, len(hp.upsample_factors), np.prod(hp.upsample_factors), hp.pad)

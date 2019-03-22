@@ -51,6 +51,8 @@ class Model{
 
     Header header;
 
+    int debugLevel;
+
     UpsampleNetwork upsample;
     Resnet resnet;
     TorchLayer I;
@@ -62,6 +64,7 @@ public:
     Model() = default;
     void loadNext( FILE* fd );
     Vectorf apply( const Matrixf& x );
+    void setDebugLevel( int level ){ debugLevel = level; }
 };
 
 

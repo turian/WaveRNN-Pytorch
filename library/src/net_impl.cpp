@@ -16,6 +16,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "wavernn.h"
 #include "net_impl.h"
 
+
 Vectorf softmax( const Vectorf& x )
 {
     float maxVal = x.maxCoeff();
@@ -170,6 +171,9 @@ Vectorf Model::apply(const Matrixf &mels_in)
 
     Vectorf h1 = Vectorf::Zero(rnn_shape[0]);
 
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> distribution(0,1);
+
     for(int i=0; i<seq_len; ++i){
         Vectorf y = vstack( x, mels.col(i), a1.col(i) );
         y = I( y );
@@ -182,7 +186,21 @@ Vectorf Model::apply(const Matrixf &mels_in)
         Vectorf logits = fc2( y );
         Vectorf posterior = softmax( logits );
 
-        float newAmplitude = sampleCategorical( posterior );
+        float newAmplitude;
+        newAmplitude = sampleCategorical( posterior );
+//        if( debugLevel == 0 )
+//            newAmplitude = sampleCategorical( posterior );
+//        if( debugLevel == 1 ){
+//            Vectorf::Index index;
+//            posterior.maxCoeff(&index);
+//            newAmplitude = index;
+//        }
+//        if( debugLevel == 2 ){
+//            Vectorf::Index index;
+//            posterior.maxCoeff(&index);
+//            newAmplitude = index + distribution(generator);
+//        }
+
         newAmplitude = (2.*newAmplitude) / (posterior.size()-1.) - 1.; //for bits output
         //newAmplitude = invMulawQuantize( newAmplitude );   //mulaw output
         wav_out(i) = x(0) = newAmplitude;

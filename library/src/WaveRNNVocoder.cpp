@@ -36,6 +36,9 @@ public:
         return model.apply(mels);
     }
 
+    void setDebugLevel( int level ){
+        model.setDebugLevel( level );
+    }
 };
 
 PYBIND11_MODULE(WaveRNNVocoder, m){
@@ -69,5 +72,6 @@ PYBIND11_MODULE(WaveRNNVocoder, m){
             .def(py::init())
             .def("loadWeights", &Vocoder::loadWeights )
             .def("melToWav", &Vocoder::melToWav )
+            .def("setDebugLevel", &Vocoder::setDebugLevel )
             ;
 }
