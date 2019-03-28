@@ -3,3 +3,7 @@ librosa
 nnmnkwii
 tqdm
 lws
+scipy
+numpy
+tensorboardx
+matplotlib

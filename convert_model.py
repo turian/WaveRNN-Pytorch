@@ -4,9 +4,9 @@ usage: convert_model.py [options] <checkpoint.pth>
 
 options:
     --output-dir=<dir>           Output Directory [default: model_outputs]
-    --mel=<file>                 Mel file input for testing.
     -h, --help                   Show this help message and exit
 """
+#    --mel=<file>                 Mel file input for testing.
 
 from docopt import docopt
 from model import *
@@ -17,8 +17,6 @@ import numpy as np
 import scipy as sp
 
 elSize = 4 #change to 2 for fp16
-
-
 
 def compress(W):
     N = W.shape[1]
@@ -296,7 +294,7 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     print("Command line args:\n", args)
     output_path = args["--output-dir"]
-    mel_file = args["--mel"]
+    # mel_file = args["--mel"]
 
     device = torch.device("cpu")
 
@@ -314,12 +312,12 @@ if __name__ == "__main__":
     # torch_test_conv2d(model, checkpoint)
     # torch_test_batchnorm1d(model, checkpoint)
 
-    mel = np.load(mel_file)
-    mel = mel.astype('float32').T
-    v = struct.pack('@ii', mel.shape[0], mel.shape[1])
-    with open(output_path+'/mel.bin', 'wb') as f:
-        f.write(v)
-        f.write(mel.tobytes(order='C'))
+    # mel = np.load(mel_file)
+    # mel = mel.astype('float32').T
+    # v = struct.pack('@ii', mel.shape[0], mel.shape[1])
+    # with open(output_path+'/mel.bin', 'wb') as f:
+    #     f.write(v)
+    #     f.write(mel.tobytes(order='C'))
 
     with open(output_path+'/model.bin','wb') as f:
         v = struct.pack('@iiii', hp.res_blocks, len(hp.upsample_factors), np.prod(hp.upsample_factors), hp.pad)
