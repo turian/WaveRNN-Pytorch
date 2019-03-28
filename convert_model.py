@@ -287,7 +287,7 @@ def save_main(f, model):
     save_layer(f, model.I)
     save_layer(f, model.rnn1)
     save_layer(f, model.fc1)
-    save_layer(f, model.fc2)
+    save_layer(f, model.fc3)
     return
 
 if __name__ == "__main__":
