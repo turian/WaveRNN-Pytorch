@@ -296,7 +296,7 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
         raise ValueError("input_type:{} not supported".format(hp.input_type))
 
     # Pruner for reducing memory footprint
-    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target), (model.fc1,hp.sparsity_target), (model.fc3,hp.sparsity_target)] #(model.fc2,hp.sparsity_target),
+    layers = [(model.I,hp.sparsity_target), (model.rnn1,hp.sparsity_target_rnn), (model.fc1,hp.sparsity_target), (model.fc3,hp.sparsity_target)] #(model.fc2,hp.sparsity_target),
     pruner = Pruner(layers, hp.start_prune, hp.prune_steps, hp.sparsity_target)
 
     global global_step, global_epoch, global_test_step
@@ -445,6 +445,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Interrupted!")
         pass
+    except Exception as e:
+        print(e)
     finally:
         print("saving model....")
         save_checkpoint(device, model, optimizer, global_step, checkpoint_dir, global_epoch)

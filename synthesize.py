@@ -50,8 +50,11 @@ if __name__ == "__main__":
     if mel.shape[0] > mel.shape[1]: #ugly hack for transposed mels
         mel = mel.T
 
-    flist = glob.glob(f'{checkpoint_dir}/checkpoint_*.pth')
-    latest_checkpoint = max(flist, key=os.path.getctime)
+    if checkpoint_path is None:
+        flist = glob.glob(f'{checkpoint_dir}/checkpoint_*.pth')
+        latest_checkpoint = max(flist, key=os.path.getctime)
+    else:
+        latest_checkpoint = checkpoint_path
     print('Loading: %s'%latest_checkpoint)
     # build model, create optimizer
     model = build_model().to(device)
@@ -64,7 +67,7 @@ if __name__ == "__main__":
     #print("rnn2: %.3f million"%(num_params_count(model.rnn2)))
     print("fc1: %.3f million"%(num_params_count(model.fc1)))
     #print("fc2: %.3f million"%(num_params_count(model.fc2)))
-    #print("fc3: %.3f million"%(num_params_count(model.fc3)))
+    print("fc3: %.3f million"%(num_params_count(model.fc3)))
 
 
     #onnx export
@@ -81,6 +84,7 @@ if __name__ == "__main__":
 
 
     mel0 = mel.copy()
+    mel0=np.hstack([np.ones([80,40])*(-4), mel0, np.ones([80,40])*(-4)])
     start = time.time()
     output0 = model.generate(mel0, batched=False, target=2000, overlap=64)
     total_time = time.time() - start

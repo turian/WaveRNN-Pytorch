@@ -49,7 +49,7 @@ hparams = tf.contrib.training.HParams(
     preemphasize = False, #whether to apply filter
     preemphasis = 0.97, #filter coefficient.
 
-    magnitude_power=1., #The power of the spectrogram magnitude (1. for energy, 2. for power)
+    magnitude_power=2., #The power of the spectrogram magnitude (1. for energy, 2. for power)
 
 	# Use LWS (https://github.com/Jonathan-LeRoux/lws) for STFT and phase reconstruction
 	# It's preferred to set True to use with https://github.com/r9y9/wavenet_vocoder
@@ -80,7 +80,7 @@ hparams = tf.contrib.training.HParams(
     save_every_step=10000,
     evaluate_every_step=10000,
     # seq_len_factor can be adjusted to increase training sequence length (will increase GPU usage)
-    seq_len_factor=5,
+    seq_len_factor=7,
 
     grad_norm=10,
     # learning rate parameters
@@ -92,9 +92,10 @@ hparams = tf.contrib.training.HParams(
     lr_step_interval=15000,
 
     # sparsification
-    start_prune=40000,
+    start_prune=80000,
     prune_steps=80000,  # 20000
-    sparsity_target=0.85,
+    sparsity_target=0.90,
+    sparsity_target_rnn=0.90,
     sparse_group=4,
 
     adam_beta1=0.9,

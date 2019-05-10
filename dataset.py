@@ -59,6 +59,38 @@ class TacotronDataset(Dataset):
     def __len__(self):
         return len(self.metadata)
 
+class Tacotron2Dataset(Dataset):
+    def __init__(self, data_path):
+        self.metadata=[]
+        self.path = os.path.join(data_path, "")
+        with open(os.path.join(self.path,'train.txt'), 'r', newline='') as f:
+            csvreader = csv.reader(f, delimiter='|')
+            for row in csvreader:
+                self.metadata.append(row)
+        
+        self.mel_path = os.path.join(data_path, "mels")
+        self.wav_path = os.path.join(data_path, "audio")
+        self.test_path = os.path.join(data_path, "mels")
+    
+    def __getitem__(self, index):
+        entry = self.metadata[index]
+        m = np.load(os.path.join(self.mel_path, entry[1])).T
+        wav = np.load(os.path.join(self.wav_path, entry[0]))
+        
+        if hp.input_type == 'raw' or hp.input_type=='mixture':
+            wav = wav.astype(np.float32)
+        elif hp.input_type == 'mulaw':
+            wav = mulaw_quantize(wav, hp.mulaw_quantize_channels).astype(np.int)
+        elif hp.input_type == 'bits':
+            wav = quantize(wav).astype(np.int)
+        else:
+            raise ValueError("hp.input_type {} not recognized".format(hp.input_type))
+        return m, wav
+    
+    def __len__(self):
+        return len(self.metadata)
+
+
 class MozillaTTS(Dataset):
     def __init__(self, data_path):
         self.metadata=[]
