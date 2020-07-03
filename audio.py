@@ -3,7 +3,7 @@ import librosa.filters
 import math
 import numpy as np
 from scipy import signal
-from hparams import hparams
+from myhparams import hparams
 from scipy.io import wavfile
 
 # r9r9 preprocessing

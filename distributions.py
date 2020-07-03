@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.distributions import Beta, Normal
-from hparams import hparams as hp
+from myhparams import hparams as hp
 
 def sample_from_beta_dist(y_hat):
     """

@@ -17,7 +17,7 @@ import glob
 
 from docopt import docopt
 from model import *
-from hparams import hparams
+from myhparams import hparams as hp
 from utils import num_params_count
 import pickle
 import time

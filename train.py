@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 from dataset import raw_collate, discrete_collate, AudiobookDataset, TacotronDataset, MozillaTTS
 from distributions import *
-from hparams import hparams as hp
+from myhparams import hparams as hp
 from loss_function import nll_loss
 from lrschedule import noam_learning_rate_decay, step_learning_rate_decay
 from model import build_model

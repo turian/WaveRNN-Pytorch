@@ -10,7 +10,7 @@ options:
 
 from docopt import docopt
 from model import *
-from hparams import hparams as hp
+from myhparams import hparams as hp
 
 import struct
 import numpy as np

@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from hparams import hparams as hp
+from myhparams import hparams as hp
 from torch.utils.data import DataLoader, Dataset
 from distributions import *
 from utils import num_params, mulaw_quantize, inv_mulaw_quantize

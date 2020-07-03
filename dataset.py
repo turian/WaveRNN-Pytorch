@@ -4,7 +4,7 @@ import os
 
 import torch
 from torch.utils.data import DataLoader, Dataset
-from hparams import hparams as hp
+from myhparams import hparams as hp
 from utils import mulaw_quantize, inv_mulaw_quantize
 import pickle
 import csv

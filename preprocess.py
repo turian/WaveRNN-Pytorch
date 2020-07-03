@@ -13,7 +13,7 @@ from docopt import docopt
 import numpy as np
 import math, pickle, os
 from audio import *
-from hparams import hparams as hp
+from myhparams import hparams as hp
 from utils import *
 from tqdm import tqdm
 
@@ -45,7 +45,8 @@ def process_data(wav_dirs, output_path, mel_path, wav_path):
     wav_files=[]
     for wav_dir in wav_dirs:
         thisdir = os.listdir(wav_dir)
-        thisdir=[ os.path.join(wav_dir, thisfile) for thisfile in thisdir]
+        #thisdir=[ os.path.join(wav_dir, thisfile) for thisfile in thisdir]
+        thisdir=[thisfile for thisfile in thisdir]
         wav_files += thisdir
 
     # check wav_file
@@ -82,9 +83,12 @@ def process_data(wav_dirs, output_path, mel_path, wav_path):
 
 
 if __name__=="__main__":
-    args = docopt(__doc__)
-    wav_dir = args["<wav-dir>"]
-    output_dir = args["--output-dir"]
+#    args = docopt(__doc__)
+#    wav_dir = args["<wav-dir>"]
+#    output_dir = args["--output-dir"]
+    wav_dir = ["train-small"]
+    wav_dir = ["dt-small"]
+    output_dir = "training_data-small"
 
     # create paths
     output_path = os.path.join(output_dir,"")
