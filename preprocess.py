@@ -87,7 +87,6 @@ if __name__=="__main__":
 #    wav_dir = args["<wav-dir>"]
 #    output_dir = args["--output-dir"]
     wav_dir = ["train-small"]
-    wav_dir = ["dt-small"]
     output_dir = "training_data-small"
 
     # create paths
